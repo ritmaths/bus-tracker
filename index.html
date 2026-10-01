@@ -9,7 +9,7 @@
         body { background-color: #f1f5f9; color: #1e293b; padding-bottom: 30px; }
         
         header { background-color: #4f46e5; color: white; padding: 14px 16px; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .header-content { max-w: 480px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+        .header-content { max-width: 480px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
         .title-box h1 { font-size: 18px; font-weight: 700; }
         .title-box p { font-size: 12px; color: #c7d2fe; display: flex; align-items: center; gap: 6px; margin-top: 2px; }
         .dot { width: 8px; height: 8px; background-color: #34d399; border-radius: 50%; display: inline-block; }
@@ -54,7 +54,6 @@
         .set-btn { background: #f1f5f9; border: none; color: #475569; font-size: 12px; font-weight: 600; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
         .bus-icon { background: #4f46e5; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; }
         
-        /* Modal Styles */
         .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 50; }
         .modal-overlay.hidden { display: none; }
         .modal { background: white; border-radius: 16px; width: 100%; max-width: 380px; padding: 20px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
@@ -69,7 +68,6 @@
         .btn-cancel { flex: 1; background: #f1f5f9; border: none; padding: 10px; border-radius: 8px; font-weight: 600; cursor: pointer; color: #475569; }
         .btn-save { flex: 1; background: #4f46e5; border: none; padding: 10px; border-radius: 8px; font-weight: 600; cursor: pointer; color: white; }
         
-        /* Toast */
         .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; font-size: 12px; padding: 10px 16px; border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: none; z-index: 100; }
     </style>
 </head>
@@ -79,7 +77,7 @@
         <div class="header-content">
             <div class="title-box">
                 <h1 id="routeTitleHeader">Bus Route Tracker</h1>
-                <p><span class="dot"></span><span id="liveStatusText">Syncing live...</span></p>
+                <p><span class="dot"></span><span id="liveStatusText">Connecting...</span></p>
             </div>
             <button id="shareButton" class="share-btn" title="Share Link">🔗</button>
         </div>
@@ -88,7 +86,7 @@
     <main>
         <div class="card summary-card">
             <div class="label">Current Bus Position</div>
-            <div id="currentBusStopDisplay" class="current-stop">Loading route...</div>
+            <div id="currentBusStopDisplay" class="current-stop">Loading...</div>
             <div id="lastUpdatedDisplay" class="updated-at">Updated --</div>
             <div>
                 <button id="quickNextBtn" class="action-btn">⏩ Advance to Next Stop</button>
@@ -110,7 +108,6 @@
         </div>
     </main>
 
-    <!-- Modal -->
     <div id="editModal" class="modal-overlay hidden">
         <div class="modal">
             <div class="modal-title">
@@ -136,10 +133,9 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Firebase Credentials
+        // Direct Firebase setup without optional auth block to ensure open syncing
         const firebaseConfig = {
             apiKey: "AIzaSyDNplJxXvQMG-2AkcIR12a2eebcfi3pmc0",
             authDomain: "bus-tracker-rit.firebaseapp.com",
@@ -151,12 +147,11 @@
         };
 
         const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
         const db = getFirestore(app);
 
-        const routeDocRef = doc(db, 'bus_routes', 'dailyCommute');
+        // Store directly in a top-level collection document
+        const routeDocRef = doc(db, "public_bus_tracker", "active_route");
 
-        let currentUser = null;
         let routeData = {
             routeName: 'Daily Bus Route',
             currentStopIndex: -1,
@@ -186,48 +181,28 @@
         const stopsListTextArea = document.getElementById('stopsListTextArea');
         const toast = document.getElementById('toast');
 
-        async function authenticate() {
-            try {
-                await signInAnonymously(auth);
-            } catch (err) {
-                console.error("Auth Error:", err);
-                liveStatusText.innerText = "Auth Error";
-            }
-        }
-
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                currentUser = user;
-                liveStatusText.innerText = "Live Connected";
-                subscribeToRouteUpdates();
+        // Real-time listener without waiting for auth
+        onSnapshot(routeDocRef, { includeMetadataChanges: true }, (docSnap) => {
+            if (docSnap.exists()) {
+                routeData = docSnap.data();
+                liveStatusText.innerText = docSnap.metadata.hasPendingWrites ? "Updating cloud..." : "Sync Live ✓";
             } else {
-                authenticate();
+                saveDataToCloud(routeData);
+                liveStatusText.innerText = "Initialized Cloud";
             }
+            renderApp();
+        }, (error) => {
+            console.error("Firestore sync error:", error);
+            liveStatusText.innerText = "Sync Error: Check Rules";
+            renderApp();
         });
-
-        function subscribeToRouteUpdates() {
-            if (!currentUser) return;
-
-            onSnapshot(routeDocRef, (docSnap) => {
-                if (docSnap.exists()) {
-                    routeData = docSnap.data();
-                } else {
-                    saveDataToCloud(routeData);
-                }
-                renderApp();
-            }, (error) => {
-                console.error("Firestore sync error:", error);
-                liveStatusText.innerText = "Sync Error";
-                renderApp();
-            });
-        }
 
         async function saveDataToCloud(newData) {
             try {
                 await setDoc(routeDocRef, newData);
             } catch (e) {
                 console.error("Error updating route:", e);
-                showToast("Failed to sync updates.");
+                showToast("Failed to sync. Check Rules.");
             }
         }
 
@@ -309,7 +284,6 @@
             }
 
             updateCloudRouteData({ stops, currentStopIndex: currentIdx });
-            showToast(stops[index].passed ? `Passed "${stops[index].name}"` : `Unmarked "${stops[index].name}"`);
         }
 
         function setBusCurrentStop(index) {
@@ -322,8 +296,6 @@
                 stops: stops,
                 currentStopIndex: index
             });
-
-            showToast(`Bus is now at "${stops[index].name}"`);
         }
 
         quickNextBtn.addEventListener('click', () => {
@@ -344,12 +316,6 @@
                 stops: updatedStops,
                 currentStopIndex: nextIndex
             });
-
-            if (nextIndex < stops.length) {
-                showToast(`Advanced to "${stops[nextIndex].name}"`);
-            } else {
-                showToast("Route completed!");
-            }
         });
 
         resetStatusBtn.addEventListener('click', () => {
@@ -416,7 +382,7 @@
             const shareUrl = window.location.href;
             if (navigator.clipboard) {
                 navigator.clipboard.writeText(shareUrl).then(() => {
-                    showToast("Link copied to clipboard!");
+                    showToast("Link copied!");
                 });
             } else {
                 showToast("Share URL: " + shareUrl);
