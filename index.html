@@ -1,22 +1,20 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Live Bus Stop Tracker</title>
-    <!-- Tailwind CSS for modern responsive styling -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind CSS -->
+    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
     <!-- Font Awesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="[https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css](https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css)">
     <!-- Google Fonts Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="[https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap](https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap)" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f3f4f6;
         }
-        /* Custom smooth pulse animation for live marker */
         @keyframes pulse-ring {
             0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
             70% { transform: scale(1); box-shadow: 0 0 0 12px rgba(59, 130, 246, 0); }
@@ -65,7 +63,7 @@
             </div>
         </div>
 
-        <!-- Controls & Action Toolbar -->
+        <!-- Controls Toolbar -->
         <div class="flex items-center justify-between bg-white p-2 px-3 rounded-xl border border-slate-200 shadow-sm text-xs">
             <button id="editRouteBtn" class="text-slate-600 hover:text-indigo-600 font-medium flex items-center space-x-1 py-1 px-2 rounded hover:bg-slate-50">
                 <i class="fa-solid fa-pen-to-square"></i>
@@ -90,7 +88,7 @@
         </div>
     </main>
 
-    <!-- Edit Route / Add Stops Modal -->
+    <!-- Edit Route Modal -->
     <div id="editModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl w-full max-w-sm p-5 shadow-2xl flex flex-col max-h-[85vh]">
             <div class="flex justify-between items-center mb-4 pb-2 border-b">
@@ -103,12 +101,12 @@
             <div class="space-y-4 overflow-y-auto flex-1 pr-1">
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Route Name</label>
-                    <input type="text" id="routeNameInput" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500" placeholder="e.g. Route 42 - Downtown Express">
+                    <input type="text" id="routeNameInput" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500" placeholder="e.g. Route 42">
                 </div>
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Stops List (One stop per line)</label>
-                    <textarea id="stopsListTextArea" rows="8" class="w-full border border-slate-300 rounded-xl p-3 text-sm focus:outline-none focus:border-indigo-500 font-sans" placeholder="Depot Main Station&#10;Oak Street&#10;Central Park&#10;Tech Hub&#10;Terminal 1"></textarea>
+                    <textarea id="stopsListTextArea" rows="8" class="w-full border border-slate-300 rounded-xl p-3 text-sm focus:outline-none focus:border-indigo-500 font-sans" placeholder="Stop 1&#10;Stop 2&#10;Stop 3"></textarea>
                     <p class="text-[11px] text-slate-400 mt-1">Stops will follow the order listed here.</p>
                 </div>
             </div>
@@ -127,20 +125,12 @@
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { initializeApp } from "[https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js](https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js)";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "[https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js](https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js)";
+        import { getFirestore, doc, setDoc, onSnapshot } from "[https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js](https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js)";
 
-        // Firebase configuration resolution
-        // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
+        // Your exact project credentials
+        const firebaseConfig = {
   apiKey: "AIzaSyDNplJxXvQMG-2AkcIR12a2eebcfi3pmco",
   authDomain: "bus-tracker-rit.firebaseapp.com",
   projectId: "bus-tracker-rit",
@@ -149,34 +139,25 @@ const firebaseConfig = {
   appId: "1:267033000588:web:6d15593b0479622422d9a9",
   measurementId: "G-BYR8GJFFFT"
 };
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // Firestore public route document reference (Rule 1 compliance)
-        const routeDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'busRouteData', 'currentRoute');
+        const routeDocRef = doc(db, 'bus_routes', 'dailyCommute');
 
-        // State variables
         let currentUser = null;
         let routeData = {
             routeName: 'Daily Commute Route',
             currentStopIndex: -1,
             lastUpdated: Date.now(),
             stops: [
-                { id: '1', name: 'Main Bus Terminal', passed: false },
-                { id: '2', name: '7th Avenue Junction', passed: false },
-                { id: '3', name: 'Central Library', passed: false },
-                { id: '4', name: 'City Hospital', passed: false },
-                { id: '5', name: 'Tech Park Campus', passed: false }
+                { id: '1', name: 'Stop 1 - Start Station', passed: false },
+                { id: '2', name: 'Stop 2 - Junction', passed: false },
+                { id: '3', name: 'Stop 3 - Central Mall', passed: false },
+                { id: '4', name: 'Stop 4 - Campus Gate', passed: false }
             ]
         };
 
-        // DOM Element Cache
         const routeTitleHeader = document.getElementById('routeTitleHeader');
         const liveStatusText = document.getElementById('liveStatusText');
         const currentBusStopDisplay = document.getElementById('currentBusStopDisplay');
@@ -196,20 +177,15 @@ const analytics = getAnalytics(app);
         const toast = document.getElementById('toast');
         const toastMessage = document.getElementById('toastMessage');
 
-        // Authenticate User
         async function authenticate() {
             try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
+                await signInAnonymously(auth);
             } catch (err) {
                 console.error("Auth Error:", err);
+                liveStatusText.innerText = "Auth Error";
             }
         }
 
-        // Initialize App Auth and Listener
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUser = user;
@@ -220,27 +196,25 @@ const analytics = getAnalytics(app);
             }
         });
 
-        // Subscribe to real-time updates across devices
         function subscribeToRouteUpdates() {
             if (!currentUser) return;
 
             onSnapshot(routeDocRef, (docSnap) => {
                 if (docSnap.exists()) {
                     routeData = docSnap.data();
-                    renderApp();
                 } else {
-                    // Seed initial data if document doesn't exist
                     saveDataToCloud(routeData);
                 }
+                renderApp();
             }, (error) => {
                 console.error("Firestore sync error:", error);
-                liveStatusText.innerText = "Sync issue";
+                liveStatusText.innerText = "Sync Error";
+                // Fallback rendering
+                renderApp();
             });
         }
 
-        // Save current route status to Firestore
         async function saveDataToCloud(newData) {
-            if (!currentUser) return;
             try {
                 await setDoc(routeDocRef, newData);
             } catch (e) {
@@ -250,10 +224,8 @@ const analytics = getAnalytics(app);
         }
 
         function renderApp() {
-            // Update Title
             routeTitleHeader.innerText = routeData.routeName || 'Bus Route Tracker';
 
-            // Calculate current bus position
             const currentIndex = routeData.currentStopIndex;
             const stops = routeData.stops || [];
 
@@ -272,19 +244,15 @@ const analytics = getAnalytics(app);
                 currentBusStopDisplay.innerHTML = `<span class="text-slate-400 font-normal">Bus has not departed yet</span>`;
             }
 
-            // Update timestamp
             if (routeData.lastUpdated) {
-                const timeAgo = formatTimeAgo(routeData.lastUpdated);
-                lastUpdatedDisplay.innerText = `Last updated: ${timeAgo}`;
+                lastUpdatedDisplay.innerText = `Last updated: ${formatTimeAgo(routeData.lastUpdated)}`;
             } else {
                 lastUpdatedDisplay.innerText = 'Not started yet today';
             }
 
-            // Render passed progress count
             const passedCount = stops.filter(s => s.passed).length;
             progressCount.innerText = `${passedCount}/${stops.length} Passed`;
 
-            // Render Stop List
             stopsContainer.innerHTML = '';
             
             stops.forEach((stop, index) => {
@@ -301,7 +269,6 @@ const analytics = getAnalytics(app);
                 }`;
 
                 stopEl.innerHTML = `
-                    <!-- Tick/Check box -->
                     <button data-action="toggle-passed" data-index="${index}" class="mr-3 text-lg flex-shrink-0 focus:outline-none">
                         ${isPassed 
                             ? '<i class="fa-solid fa-circle-check text-emerald-600"></i>' 
@@ -309,7 +276,6 @@ const analytics = getAnalytics(app);
                         }
                     </button>
 
-                    <!-- Stop Name & Status -->
                     <div class="flex-1 min-w-0 cursor-pointer" data-action="set-current" data-index="${index}">
                         <div class="flex items-center space-x-2">
                             <span class="text-xs font-semibold text-slate-400">#${index + 1}</span>
@@ -319,7 +285,6 @@ const analytics = getAnalytics(app);
                         </div>
                     </div>
 
-                    <!-- Bus location pin / button -->
                     <button data-action="set-current" data-index="${index}" class="ml-2 flex-shrink-0">
                         ${isCurrent 
                             ? '<span class="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold bus-active-ring"><i class="fa-solid fa-bus"></i></span>'
@@ -332,7 +297,6 @@ const analytics = getAnalytics(app);
             });
         }
 
-        // Interaction Event Listeners
         stopsContainer.addEventListener('click', (e) => {
             const btn = e.target.closest('[data-action]');
             if (!btn) return;
@@ -347,12 +311,10 @@ const analytics = getAnalytics(app);
             }
         });
 
-        // Toggle passed status of a stop
         function toggleStopPassed(index) {
             const stops = [...routeData.stops];
             stops[index].passed = !stops[index].passed;
 
-            // If checked as passed, and it's the current stop, move current pointer to next stop
             let currentIdx = routeData.currentStopIndex;
             if (stops[index].passed && currentIdx === index) {
                 currentIdx = index + 1;
@@ -362,11 +324,10 @@ const analytics = getAnalytics(app);
             showToast(stops[index].passed ? `Marked "${stops[index].name}" as passed` : `Unmarked "${stops[index].name}"`);
         }
 
-        // Set bus current location
         function setBusCurrentStop(index) {
             const stops = routeData.stops.map((stop, i) => ({
                 ...stop,
-                passed: i < index // automatically check off previous stops
+                passed: i < index
             }));
 
             updateCloudRouteData({
@@ -377,7 +338,6 @@ const analytics = getAnalytics(app);
             showToast(`Bus is now at "${stops[index].name}"`);
         }
 
-        // Advance bus to next stop button
         quickNextBtn.addEventListener('click', () => {
             const stops = routeData.stops;
             let nextIndex = routeData.currentStopIndex + 1;
@@ -404,7 +364,6 @@ const analytics = getAnalytics(app);
             }
         });
 
-        // Reset Daily Status
         resetStatusBtn.addEventListener('click', () => {
             const resetStops = routeData.stops.map(stop => ({ ...stop, passed: false }));
             updateCloudRouteData({
@@ -414,7 +373,6 @@ const analytics = getAnalytics(app);
             showToast("Route status reset for a new day!");
         });
 
-        // Helper to update state with timestamp
         function updateCloudRouteData(partialData) {
             routeData = {
                 ...routeData,
@@ -422,9 +380,9 @@ const analytics = getAnalytics(app);
                 lastUpdated: Date.now()
             };
             saveDataToCloud(routeData);
+            renderApp();
         }
 
-        // Modal logic for editing stops
         editRouteBtn.addEventListener('click', () => {
             routeNameInput.value = routeData.routeName || '';
             stopsListTextArea.value = routeData.stops.map(s => s.name).join('\n');
@@ -447,7 +405,6 @@ const analytics = getAnalytics(app);
                 return;
             }
 
-            // Construct new stops list preserving passed state if names match
             const newStops = lines.map((name, idx) => {
                 const existing = routeData.stops.find(s => s.name.toLowerCase() === name.toLowerCase());
                 return {
@@ -460,14 +417,13 @@ const analytics = getAnalytics(app);
             updateCloudRouteData({
                 routeName: newName,
                 stops: newStops,
-                currentStopIndex: -1 // Reset position on full edit
+                currentStopIndex: -1
             });
 
             closeModal();
             showToast("Route layout updated successfully!");
         });
 
-        // Share button function
         shareButton.addEventListener('click', () => {
             const shareUrl = window.location.href;
             if (navigator.clipboard) {
@@ -495,7 +451,6 @@ const analytics = getAnalytics(app);
             document.body.removeChild(textArea);
         }
 
-        // Helper Functions
         function showToast(msg) {
             toastMessage.innerText = msg;
             toast.classList.remove('translate-y-20', 'opacity-0');
@@ -530,4 +485,3 @@ const analytics = getAnalytics(app);
     </script>
 </body>
 </html>
-```
