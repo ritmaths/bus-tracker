@@ -132,15 +132,27 @@
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Firebase configuration resolution
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'daily-bus-stop-tracker';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            apiKey: "demo-api-key",
-            authDomain: "demo-app.firebaseapp.com",
-            projectId: "demo-app",
-            storageBucket: "demo-app.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "1:123456789:web:abcdef"
-        };
+        // Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyDNplJxXvQMG-2AkcIR12a2eebcfi3pmco",
+  authDomain: "bus-tracker-rit.firebaseapp.com",
+  projectId: "bus-tracker-rit",
+  storageBucket: "bus-tracker-rit.firebasestorage.app",
+  messagingSenderId: "267033000588",
+  appId: "1:267033000588:web:6d15593b0479622422d9a9",
+  measurementId: "G-BYR8GJFFFT"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
