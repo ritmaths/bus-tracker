@@ -55,6 +55,8 @@
         .bus-icon { background: #4f46e5; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; }
         
         .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; font-size: 12px; padding: 10px 16px; border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: none; z-index: 100; }
+        
+        footer { text-align: center; margin-top: 24px; font-size: 12px; color: #64748b; font-weight: 500; }
     </style>
 </head>
 <body>
@@ -91,6 +93,10 @@
 
             <div id="stopsContainer" class="stops-list"></div>
         </div>
+
+        <footer>
+            Conceptualized and executed by Dr. Srikantha N, Department of Mathematics, RIT
+        </footer>
     </main>
 
     <div id="toast" class="toast">Action completed</div>
@@ -161,7 +167,6 @@
         onSnapshot(routeDocRef, { includeMetadataChanges: true }, (docSnap) => {
             if (docSnap.exists()) {
                 const cloudData = docSnap.data();
-                // Ensure stops sequence aligns with the requested predefined list
                 routeData = {
                     ...cloudData,
                     stops: predefinedStopsList.map((stopName, idx) => {
