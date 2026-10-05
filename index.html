@@ -22,15 +22,15 @@
         
         .summary-card { text-align: center; }
         .label { font-size: 11px; text-transform: uppercase; font-weight: 700; color: #94a3b8; letter-spacing: 0.5px; }
-        .current-stop { font-size: 20px; font-weight: 700; color: #1e1b4b; margin: 8px 0 4px; min-height: 30px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .current-stop { font-size: 18px; font-weight: 700; color: #1e1b4b; margin: 8px 0 4px; min-height: 30px; display: flex; align-items: center; justify-content: center; gap: 8px; }
         .badge { background: #dbeafe; color: #1e40af; font-size: 11px; padding: 2px 8px; border-radius: 6px; }
         .badge-done { background: #d1fae5; color: #065f46; font-size: 11px; padding: 2px 8px; border-radius: 6px; }
-        .updated-at { font-size: 12px; color: #64748b; }
+        .updated-at { font-size: 12px; color: #475569; font-weight: 600; margin-top: 4px; }
         
         .action-btn { background: #059669; color: white; border: none; padding: 10px 16px; border-radius: 10px; font-weight: 600; font-size: 13px; cursor: pointer; margin-top: 12px; transition: background 0.2s; }
         .action-btn:active { background: #047857; }
         
-        .toolbar { display: flex; justify-content: space-between; background: white; padding: 10px 14px; border-radius: 12px; border: 1px solid #e2e8f0; }
+        .toolbar { display: flex; justify-content: flex-end; background: white; padding: 10px 14px; border-radius: 12px; border: 1px solid #e2e8f0; }
         .tool-btn { background: none; border: none; color: #475569; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; }
         .tool-btn:hover { color: #4f46e5; }
         
@@ -54,20 +54,6 @@
         .set-btn { background: #f1f5f9; border: none; color: #475569; font-size: 12px; font-weight: 600; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
         .bus-icon { background: #4f46e5; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; }
         
-        .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 50; }
-        .modal-overlay.hidden { display: none; }
-        .modal { background: white; border-radius: 16px; width: 100%; max-width: 380px; padding: 20px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
-        .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
-        .close-btn { background: none; border: none; font-size: 18px; color: #94a3b8; cursor: pointer; }
-        
-        .form-group { margin-bottom: 14px; }
-        .form-group label { font-size: 12px; font-weight: 600; color: #475569; display: block; margin-bottom: 4px; }
-        .form-group input, .form-group textarea { width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; font-size: 14px; }
-        
-        .modal-actions { display: flex; gap: 8px; margin-top: 16px; }
-        .btn-cancel { flex: 1; background: #f1f5f9; border: none; padding: 10px; border-radius: 8px; font-weight: 600; cursor: pointer; color: #475569; }
-        .btn-save { flex: 1; background: #4f46e5; border: none; padding: 10px; border-radius: 8px; font-weight: 600; cursor: pointer; color: white; }
-        
         .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; font-size: 12px; padding: 10px 16px; border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: none; z-index: 100; }
     </style>
 </head>
@@ -76,7 +62,7 @@
     <header>
         <div class="header-content">
             <div class="title-box">
-                <h1 id="routeTitleHeader">Bus Route Tracker</h1>
+                <h1 id="routeTitleHeader">RIT Bus Route Tracker</h1>
                 <p><span class="dot"></span><span id="liveStatusText">Connecting...</span></p>
             </div>
             <button id="shareButton" class="share-btn" title="Share Link">🔗</button>
@@ -87,14 +73,13 @@
         <div class="card summary-card">
             <div class="label">Current Bus Position</div>
             <div id="currentBusStopDisplay" class="current-stop">Loading...</div>
-            <div id="lastUpdatedDisplay" class="updated-at">Updated --</div>
+            <div id="lastUpdatedDisplay" class="updated-at">Updated: --</div>
             <div>
                 <button id="quickNextBtn" class="action-btn">⏩ Advance to Next Stop</button>
             </div>
         </div>
 
         <div class="toolbar">
-            <button id="editRouteBtn" class="tool-btn">✏️ Edit Stops</button>
             <button id="resetStatusBtn" class="tool-btn">🔄 Reset Daily Status</button>
         </div>
 
@@ -108,34 +93,12 @@
         </div>
     </main>
 
-    <div id="editModal" class="modal-overlay hidden">
-        <div class="modal">
-            <div class="modal-title">
-                <span>Customize Route & Stops</span>
-                <button id="closeEditModal" class="close-btn">✕</button>
-            </div>
-            <div class="form-group">
-                <label>Route Name</label>
-                <input type="text" id="routeNameInput" placeholder="e.g. Daily Commute">
-            </div>
-            <div class="form-group">
-                <label>Stops List (One stop per line)</label>
-                <textarea id="stopsListTextArea" rows="6" placeholder="Stop 1&#10;Stop 2&#10;Stop 3"></textarea>
-            </div>
-            <div class="modal-actions">
-                <button id="cancelModalBtn" class="btn-cancel">Cancel</button>
-                <button id="saveRouteBtn" class="btn-save">Save Changes</button>
-            </div>
-        </div>
-    </div>
-
     <div id="toast" class="toast">Action completed</div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Direct Firebase setup without optional auth block to ensure open syncing
         const firebaseConfig = {
             apiKey: "AIzaSyDNplJxXvQMG-2AkcIR12a2eebcfi3pmc0",
             authDomain: "bus-tracker-rit.firebaseapp.com",
@@ -149,18 +112,39 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // Store directly in a top-level collection document
         const routeDocRef = doc(db, "public_bus_tracker", "active_route");
 
+        const predefinedStopsList = [
+            "JP Nagar Metro Station",
+            "Dayananda Sagar College signal",
+            "Kadrenahalli Cross",
+            "Kamakhya",
+            "Kathriguppe circle",
+            "Janata Baazar",
+            "Hosakerehalli Banashankari 3rd stage",
+            "Nayandahalli (Mysore road metro)",
+            "Attigippe",
+            "Maruti mandir, vijaynagar",
+            "Vijayanagar",
+            "Hosahalli Metro Station",
+            "Magadi road tolgate",
+            "Magadi housing board",
+            "Industrial Area, Tolgate",
+            "ESI Hospital Flyover",
+            "Rajajinagar metro",
+            "Mahalakshmi metro station",
+            "Sandal Soap Factory"
+        ];
+
         let routeData = {
-            routeName: 'Daily Bus Route',
+            routeName: 'RIT Bus Route Tracker',
             currentStopIndex: -1,
             lastUpdated: Date.now(),
-            stops: [
-                { id: '1', name: 'Stop 1 - Depot', passed: false },
-                { id: '2', name: 'Stop 2 - Junction', passed: false },
-                { id: '3', name: 'Stop 3 - Main Gate', passed: false }
-            ]
+            stops: predefinedStopsList.map((stopName, idx) => ({
+                id: String(idx + 1),
+                name: stopName,
+                passed: false
+            }))
         };
 
         const routeTitleHeader = document.getElementById('routeTitleHeader');
@@ -171,20 +155,24 @@
         const progressCount = document.getElementById('progressCount');
         const shareButton = document.getElementById('shareButton');
         const quickNextBtn = document.getElementById('quickNextBtn');
-        const editRouteBtn = document.getElementById('editRouteBtn');
         const resetStatusBtn = document.getElementById('resetStatusBtn');
-        const editModal = document.getElementById('editModal');
-        const closeEditModal = document.getElementById('closeEditModal');
-        const cancelModalBtn = document.getElementById('cancelModalBtn');
-        const saveRouteBtn = document.getElementById('saveRouteBtn');
-        const routeNameInput = document.getElementById('routeNameInput');
-        const stopsListTextArea = document.getElementById('stopsListTextArea');
         const toast = document.getElementById('toast');
 
-        // Real-time listener without waiting for auth
         onSnapshot(routeDocRef, { includeMetadataChanges: true }, (docSnap) => {
             if (docSnap.exists()) {
-                routeData = docSnap.data();
+                const cloudData = docSnap.data();
+                // Ensure stops sequence aligns with the requested predefined list
+                routeData = {
+                    ...cloudData,
+                    stops: predefinedStopsList.map((stopName, idx) => {
+                        const existingStop = cloudData.stops ? cloudData.stops.find(s => s.name === stopName) : null;
+                        return {
+                            id: String(idx + 1),
+                            name: stopName,
+                            passed: existingStop ? existingStop.passed : false
+                        };
+                    })
+                };
                 liveStatusText.innerText = docSnap.metadata.hasPendingWrites ? "Updating cloud..." : "Sync Live ✓";
             } else {
                 saveDataToCloud(routeData);
@@ -207,7 +195,7 @@
         }
 
         function renderApp() {
-            routeTitleHeader.innerText = routeData.routeName || 'Bus Route Tracker';
+            routeTitleHeader.innerText = routeData.routeName || 'RIT Bus Route Tracker';
 
             const currentIndex = routeData.currentStopIndex;
             const stops = routeData.stops || [];
@@ -221,7 +209,7 @@
             }
 
             if (routeData.lastUpdated) {
-                lastUpdatedDisplay.innerText = `Last updated: ${formatTimeAgo(routeData.lastUpdated)}`;
+                lastUpdatedDisplay.innerText = `Updated at: ${formatExactTimestamp(routeData.lastUpdated)}`;
             } else {
                 lastUpdatedDisplay.innerText = 'Not updated yet today';
             }
@@ -337,47 +325,6 @@
             renderApp();
         }
 
-        editRouteBtn.addEventListener('click', () => {
-            routeNameInput.value = routeData.routeName || '';
-            stopsListTextArea.value = routeData.stops.map(s => s.name).join('\n');
-            editModal.classList.remove('hidden');
-        });
-
-        function closeModal() {
-            editModal.classList.add('hidden');
-        }
-
-        closeEditModal.addEventListener('click', closeModal);
-        cancelModalBtn.addEventListener('click', closeModal);
-
-        saveRouteBtn.addEventListener('click', () => {
-            const newName = routeNameInput.value.trim() || 'Daily Bus Route';
-            const lines = stopsListTextArea.value.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-
-            if (lines.length === 0) {
-                showToast("Please enter at least one stop.");
-                return;
-            }
-
-            const newStops = lines.map((name, idx) => {
-                const existing = routeData.stops.find(s => s.name.toLowerCase() === name.toLowerCase());
-                return {
-                    id: String(idx + 1),
-                    name: name,
-                    passed: existing ? existing.passed : false
-                };
-            });
-
-            updateCloudRouteData({
-                routeName: newName,
-                stops: newStops,
-                currentStopIndex: -1
-            });
-
-            closeModal();
-            showToast("Route stops updated!");
-        });
-
         shareButton.addEventListener('click', () => {
             const shareUrl = window.location.href;
             if (navigator.clipboard) {
@@ -397,14 +344,17 @@
             }, 2500);
         }
 
-        function formatTimeAgo(timestamp) {
-            const diffSeconds = Math.floor((Date.now() - timestamp) / 1000);
-            if (diffSeconds < 10) return 'just now';
-            if (diffSeconds < 60) return `${diffSeconds}s ago`;
-            const diffMinutes = Math.floor(diffSeconds / 60);
-            if (diffMinutes < 60) return `${diffMinutes}m ago`;
-            const hours = Math.floor(diffMinutes / 60);
-            return `${hours}h ago`;
+        function formatExactTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleString('en-IN', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+            });
         }
 
         function escapeHtml(str) {
