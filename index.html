@@ -8,13 +8,18 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         body { background-color: #f1f5f9; color: #1e293b; padding-bottom: 30px; }
         
-        header { background-color: #4f46e5; color: white; padding: 14px 16px; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .header-content { max-width: 480px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
-        .title-box h1 { font-size: 18px; font-weight: 700; }
+        header { background-color: #4f46e5; color: white; padding: 12px 16px; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .header-content { max-width: 480px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+        
+        /* Logo & Header Title Container */
+        .brand-container { display: flex; align-items: center; gap: 12px; }
+        .inst-logo { width: 40px; height: 40px; object-fit: contain; border-radius: 6px; background: white; padding: 2px; }
+        
+        .title-box h1 { font-size: 17px; font-weight: 700; line-height: 1.2; }
         .title-box p { font-size: 12px; color: #c7d2fe; display: flex; align-items: center; gap: 6px; margin-top: 2px; }
         .dot { width: 8px; height: 8px; background-color: #34d399; border-radius: 50%; display: inline-block; }
         
-        .share-btn { background: #4338ca; border: none; color: white; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; }
+        .share-btn { background: #4338ca; border: none; color: white; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         
         main { max-width: 480px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
         
@@ -62,9 +67,13 @@
 
     <header>
         <div class="header-content">
-            <div class="title-box">
-                <h1 id="routeTitleHeader">RIT Bus Route Tracker</h1>
-                <p><span class="dot"></span><span id="liveStatusText">Connecting...</span></p>
+            <div class="brand-container">
+                <!-- Replace YOUR_RIT_LOGO_URL_HERE with direct logo URL -->
+                <img src="https://d2e9h3gjmozu47.cloudfront.net/brand.png" alt="RIT Logo" class="inst-logo" onerror="this.style.display='none'">
+                <div class="title-box">
+                    <h1 id="routeTitleHeader">RIT Bus Route Tracker</h1>
+                    <p><span class="dot"></span><span id="liveStatusText">Connecting...</span></p>
+                </div>
             </div>
             <button id="shareButton" class="share-btn" title="Share Link">🔗</button>
         </div>
@@ -269,7 +278,6 @@
             updateCloudRouteData({ stops, currentStopIndex: currentIdx });
         }
 
-        // Advance button event handler
         quickNextBtn.addEventListener('click', () => {
             const stops = routeData.stops;
             let nextIndex = routeData.currentStopIndex + 1;
