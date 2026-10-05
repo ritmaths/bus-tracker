@@ -3,402 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RIT Bus Route Tracker</title>
+    <title>Live Bus Stop Tracker</title>
     <style>
-        * { 
-            box-sizing: border-box; 
-            margin: 0; 
-            padding: 0; 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-        }
-
-        body { 
-            background-color: #f1f5f9; 
-            color: #1e293b; 
-            padding-bottom: 40px; 
-            min-height: 100vh;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { background-color: #f1f5f9; color: #1e293b; padding-bottom: 30px; }
         
-        header { 
-            background-color: #4f46e5; 
-            color: white; 
-            padding: 12px 16px; 
-            position: sticky; 
-            top: 0; 
-            z-index: 50; 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.12); 
-        }
-
-        .header-content { 
-            max-width: 500px; 
-            margin: 0 auto; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            gap: 12px; 
-        }
+        header { background-color: #4f46e5; color: white; padding: 12px 16px; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .header-content { max-width: 480px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
         
-        .brand-container { 
-            display: flex; 
-            align-items: center; 
-            gap: 12px; 
-        }
-
-        /* Institution Logo Styling */
-        .inst-logo { 
-            width: 44px; 
-            height: 44px; 
-            object-fit: contain; 
-            border-radius: 8px; 
-            background: #ffffff; 
-            padding: 3px; 
-            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-            flex-shrink: 0;
-        }
-
-        .logo-placeholder {
-            width: 44px;
-            height: 44px;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            flex-shrink: 0;
-            border: 1px dashed rgba(255, 255, 255, 0.5);
-        }
+        .brand-container { display: flex; align-items: center; gap: 12px; }
+        .inst-logo { width: 40px; height: 40px; object-fit: contain; border-radius: 6px; background: white; padding: 2px; }
         
-        .title-box h1 { 
-            font-size: 17px; 
-            font-weight: 700; 
-            line-height: 1.25; 
-            letter-spacing: -0.2px;
-        }
-
-        .title-box p { 
-            font-size: 12px; 
-            color: #c7d2fe; 
-            display: flex; 
-            align-items: center; 
-            gap: 6px; 
-            margin-top: 2px; 
-        }
-
-        .dot { 
-            width: 8px; 
-            height: 8px; 
-            background-color: #34d399; 
-            border-radius: 50%; 
-            display: inline-block; 
-            box-shadow: 0 0 8px #34d399;
-        }
-
-        .dot.connecting {
-            background-color: #fbbf24;
-            box-shadow: 0 0 8px #fbbf24;
-        }
+        .title-box h1 { font-size: 17px; font-weight: 700; line-height: 1.2; }
+        .title-box p { font-size: 12px; color: #c7d2fe; display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+        .dot { width: 8px; height: 8px; background-color: #34d399; border-radius: 50%; display: inline-block; }
         
-        .share-btn { 
-            background: #4338ca; 
-            border: 1px solid #6366f1; 
-            color: white; 
-            width: 38px; 
-            height: 38px; 
-            border-radius: 50%; 
-            cursor: pointer; 
-            font-size: 16px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            flex-shrink: 0; 
-            transition: all 0.2s ease;
-        }
-
-        .share-btn:hover {
-            background: #3730a3;
-        }
-
-        .share-btn:active {
-            transform: scale(0.95);
-        }
+        .share-btn { background: #4338ca; border: none; color: white; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         
-        main { 
-            max-width: 500px; 
-            margin: 0 auto; 
-            padding: 16px; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 16px; 
-        }
+        main { max-width: 480px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
         
-        .card { 
-            background: white; 
-            border-radius: 16px; 
-            padding: 18px; 
-            border: 1px solid #e2e8f0; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.03); 
-        }
+        .card { background: white; border-radius: 16px; padding: 16px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         
-        .summary-card { 
-            text-align: center; 
-            background: linear-gradient(to bottom, #ffffff, #f8fafc);
-        }
-
-        .label { 
-            font-size: 11px; 
-            text-transform: uppercase; 
-            font-weight: 700; 
-            color: #64748b; 
-            letter-spacing: 0.8px; 
-        }
-
-        .current-stop { 
-            font-size: 19px; 
-            font-weight: 700; 
-            color: #1e1b4b; 
-            margin: 10px 0 6px; 
-            min-height: 36px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            gap: 8px; 
-            flex-wrap: wrap;
-        }
-
-        .badge { 
-            background: #e0e7ff; 
-            color: #3730a3; 
-            font-size: 11px; 
-            padding: 3px 10px; 
-            border-radius: 12px; 
-            font-weight: 700;
-            letter-spacing: 0.5px;
-        }
-
-        .badge-done { 
-            background: #d1fae5; 
-            color: #065f46; 
-            font-size: 11px; 
-            padding: 3px 10px; 
-            border-radius: 12px; 
-            font-weight: 700;
-        }
-
-        .updated-at { 
-            font-size: 12px; 
-            color: #475569; 
-            font-weight: 600; 
-            margin-top: 2px; 
-        }
+        .summary-card { text-align: center; }
+        .label { font-size: 11px; text-transform: uppercase; font-weight: 700; color: #94a3b8; letter-spacing: 0.5px; }
+        .current-stop { font-size: 18px; font-weight: 700; color: #1e1b4b; margin: 8px 0 4px; min-height: 30px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .badge { background: #dbeafe; color: #1e40af; font-size: 11px; padding: 2px 8px; border-radius: 6px; }
+        .badge-done { background: #d1fae5; color: #065f46; font-size: 11px; padding: 2px 8px; border-radius: 6px; }
+        .updated-at { font-size: 12px; color: #475569; font-weight: 600; margin-top: 4px; }
         
-        .action-btn { 
-            background: #059669; 
-            color: white; 
-            border: none; 
-            padding: 12px 20px; 
-            border-radius: 12px; 
-            font-weight: 700; 
-            font-size: 14px; 
-            cursor: pointer; 
-            margin-top: 14px; 
-            width: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            box-shadow: 0 3px 6px rgba(5, 150, 105, 0.2);
-            transition: all 0.2s; 
-        }
-
-        .action-btn:hover { 
-            background: #047857; 
-        }
-
-        .action-btn:active { 
-            transform: scale(0.98); 
-        }
+        /* Action Buttons Container */
+        .btn-group { display: flex; gap: 8px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
         
-        .toolbar { 
-            display: flex; 
-            justify-content: flex-end; 
-            background: white; 
-            padding: 10px 14px; 
-            border-radius: 12px; 
-            border: 1px solid #e2e8f0; 
-        }
-
-        .tool-btn { 
-            background: none; 
-            border: none; 
-            color: #475569; 
-            font-size: 13px; 
-            font-weight: 600; 
-            cursor: pointer; 
-            display: flex; 
-            align-items: center; 
-            gap: 6px; 
-            transition: color 0.2s;
-        }
-
-        .tool-btn:hover { 
-            color: #4f46e5; 
-        }
+        .action-btn { background: #059669; color: white; border: none; padding: 10px 14px; border-radius: 10px; font-weight: 600; font-size: 13px; cursor: pointer; transition: background 0.2s; flex: 1; min-width: 140px; }
+        .action-btn:active { background: #047857; }
         
-        .section-header { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            margin-bottom: 14px; 
-        }
-
-        .section-header h2 { 
-            font-size: 13px; 
-            text-transform: uppercase; 
-            color: #475569; 
-            font-weight: 700; 
-            letter-spacing: 0.5px;
-        }
-
-        .progress-tag { 
-            font-size: 12px; 
-            background: #e2e8f0; 
-            color: #334155; 
-            padding: 3px 10px; 
-            border-radius: 12px; 
-            font-weight: 700;
-        }
+        .undo-btn { background: #dc2626; color: white; border: none; padding: 10px 14px; border-radius: 10px; font-weight: 600; font-size: 13px; cursor: pointer; transition: background 0.2s; flex: 1; min-width: 120px; }
+        .undo-btn:active { background: #b91c1c; }
+        .undo-btn:disabled { background: #cbd5e1; cursor: not-allowed; opacity: 0.7; }
         
-        .stops-list { 
-            display: flex; 
-            flex-direction: column; 
-            gap: 10px; 
-        }
-
-        .stop-item { 
-            display: flex; 
-            align-items: center; 
-            padding: 12px 14px; 
-            border-radius: 12px; 
-            border: 1px solid #e2e8f0; 
-            background: white; 
-            transition: all 0.2s ease;
-        }
-
-        .stop-item.is-current { 
-            border-color: #6366f1; 
-            background: #eef2ff; 
-            box-shadow: 0 2px 6px rgba(99, 102, 241, 0.15);
-        }
-
-        .stop-item.is-passed { 
-            background: #f8fafc; 
-            opacity: 0.75; 
-        }
+        .toolbar { display: flex; justify-content: flex-end; background: white; padding: 10px 14px; border-radius: 12px; border: 1px solid #e2e8f0; }
+        .tool-btn { background: none; border: none; color: #475569; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+        .tool-btn:hover { color: #4f46e5; }
         
-        .checkbox { 
-            width: 24px; 
-            height: 24px; 
-            border-radius: 50%; 
-            border: 2px solid #cbd5e1; 
-            margin-right: 12px; 
-            cursor: pointer; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            background: none; 
-            flex-shrink: 0; 
-            transition: all 0.2s;
-        }
-
-        .checkbox:hover {
-            border-color: #10b981;
-        }
-
-        .checkbox.checked { 
-            background: #10b981; 
-            border-color: #10b981; 
-            color: white; 
-            font-weight: bold; 
-            font-size: 12px; 
-        }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .section-header h2 { font-size: 13px; text-transform: uppercase; color: #475569; font-weight: 700; }
+        .progress-tag { font-size: 12px; background: #f1f5f9; color: #64748b; padding: 2px 8px; border-radius: 12px; }
         
-        .stop-info { 
-            flex: 1; 
-            display: flex;
-            align-items: baseline;
-            gap: 6px;
-        }
-
-        .stop-num { 
-            font-size: 11px; 
-            font-weight: 700; 
-            color: #94a3b8; 
-            flex-shrink: 0;
-        }
-
-        .stop-name { 
-            font-size: 14px; 
-            font-weight: 600; 
-            color: #1e293b; 
-            line-height: 1.3;
-        }
-
-        .line-through { 
-            text-decoration: line-through; 
-            color: #64748b; 
-        }
+        .stops-list { display: flex; flex-direction: column; gap: 10px; }
+        .stop-item { display: flex; align-items: center; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; background: white; }
+        .stop-item.is-current { border-color: #6366f1; background: #eef2ff; }
+        .stop-item.is-passed { background: #f8fafc; opacity: 0.7; }
         
-        .bus-icon-wrap {
-            margin-left: 8px;
-            flex-shrink: 0;
-        }
-
-        .bus-icon { 
-            background: #4f46e5; 
-            color: white; 
-            width: 32px; 
-            height: 32px; 
-            border-radius: 50%; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            font-size: 14px; 
-            box-shadow: 0 2px 4px rgba(79, 70, 229, 0.3);
-            animation: bounce 2s infinite;
-        }
-
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-3px); }
-        }
+        .checkbox { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #cbd5e1; margin-right: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; background: none; flex-shrink: 0; }
+        .checkbox.checked { background: #10b981; border-color: #10b981; color: white; font-weight: bold; font-size: 12px; }
         
-        .toast { 
-            position: fixed; 
-            bottom: 20px; 
-            left: 50%; 
-            transform: translateX(-50%); 
-            background: #0f172a; 
-            color: white; 
-            font-size: 13px; 
-            font-weight: 500;
-            padding: 10px 18px; 
-            border-radius: 20px; 
-            box-shadow: 0 4px 12px rgba(0,0,0,0.25); 
-            display: none; 
-            z-index: 100; 
-            transition: opacity 0.3s ease;
-        }
+        .stop-info { flex: 1; }
+        .stop-num { font-size: 11px; font-weight: 700; color: #94a3b8; margin-right: 4px; }
+        .stop-name { font-size: 14px; font-weight: 600; color: #1e293b; }
+        .line-through { text-decoration: line-through; color: #64748b; }
         
-        footer { 
-            text-align: center; 
-            margin-top: 24px; 
-            padding: 0 16px;
-            font-size: 12px; 
-            color: #64748b; 
-            font-weight: 500; 
-            line-height: 1.5;
-        }
+        .bus-icon { background: #4f46e5; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+        
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; font-size: 12px; padding: 10px 16px; border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: none; z-index: 100; }
+        
+        footer { text-align: center; margin-top: 24px; font-size: 12px; color: #64748b; font-weight: 500; }
     </style>
 </head>
 <body>
@@ -406,20 +74,10 @@
     <header>
         <div class="header-content">
             <div class="brand-container">
-                <!-- RIT Logo image pointing to rit_logo.png -->
-                <img 
-                    src="RITSymbol.png" 
-                    alt="RIT Logo" 
-                    class="inst-logo" 
-                    id="ritLogoImg"
-                    onerror="this.style.display='none'; document.getElementById('logoFallback').style.display='flex';"
-                >
-                <div id="logoFallback" class="logo-placeholder" style="display: none;" title="Upload rit_logo.png to GitHub root directory">
-                    🚌
-                </div>
+                <img src="RITSymbol.png" alt="RIT Logo" class="inst-logo" onerror="this.style.display='none'">
                 <div class="title-box">
                     <h1 id="routeTitleHeader">RIT Bus Route Tracker</h1>
-                    <p><span class="dot connecting" id="statusDot"></span><span id="liveStatusText">Connecting...</span></p>
+                    <p><span class="dot"></span><span id="liveStatusText">Connecting...</span></p>
                 </div>
             </div>
             <button id="shareButton" class="share-btn" title="Share Link">🔗</button>
@@ -429,25 +87,23 @@
     <main>
         <div class="card summary-card">
             <div class="label">Current Bus Position</div>
-            <div id="currentBusStopDisplay" class="current-stop">Loading location...</div>
+            <div id="currentBusStopDisplay" class="current-stop">Loading...</div>
             <div id="lastUpdatedDisplay" class="updated-at">Updated: --</div>
-            <div>
-                <button id="quickNextBtn" class="action-btn">
-                    <span>⏩</span> Advance to Next Stop
-                </button>
+            
+            <div class="btn-group">
+                <button id="undoLastBtn" class="undo-btn">⏮️ Undo Last Stop</button>
+                <button id="quickNextBtn" class="action-btn">⏩ Advance Stop</button>
             </div>
         </div>
 
         <div class="toolbar">
-            <button id="resetStatusBtn" class="tool-btn">
-                <span>🔄</span> Reset Daily Status
-            </button>
+            <button id="resetStatusBtn" class="tool-btn">🔄 Reset Daily Status</button>
         </div>
 
         <div class="card">
             <div class="section-header">
                 <h2>Stops Sequence</h2>
-                <span id="progressCount" class="progress-tag">0/19 Passed</span>
+                <span id="progressCount" class="progress-tag">0/0 Passed</span>
             </div>
 
             <div id="stopsContainer" class="stops-list"></div>
@@ -464,7 +120,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyDNplJxXvQMG-2AkcIR12a2eebcfi3pmc0",
             authDomain: "bus-tracker-rit.firebaseapp.com",
@@ -475,14 +130,11 @@
             measurementId: "G-BYR8GJFFFT"
         };
 
-        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // Firestore Reference: public_bus_tracker -> active_route
         const routeDocRef = doc(db, "public_bus_tracker", "active_route");
 
-        // 19 Predefined Bus Stops in exact order
         const predefinedStopsList = [
             "JP Nagar Metro Station",
             "Dayananda Sagar College signal",
@@ -505,11 +157,10 @@
             "Sandal Soap Factory"
         ];
 
-        // Application State
         let routeData = {
             routeName: 'RIT Bus Route Tracker',
             currentStopIndex: -1,
-            lastUpdated: null,
+            lastUpdated: Date.now(),
             stops: predefinedStopsList.map((stopName, idx) => ({
                 id: String(idx + 1),
                 name: stopName,
@@ -517,23 +168,21 @@
             }))
         };
 
-        // DOM Element references
         const routeTitleHeader = document.getElementById('routeTitleHeader');
         const liveStatusText = document.getElementById('liveStatusText');
-        const statusDot = document.getElementById('statusDot');
         const currentBusStopDisplay = document.getElementById('currentBusStopDisplay');
         const lastUpdatedDisplay = document.getElementById('lastUpdatedDisplay');
         const stopsContainer = document.getElementById('stopsContainer');
         const progressCount = document.getElementById('progressCount');
         const shareButton = document.getElementById('shareButton');
         const quickNextBtn = document.getElementById('quickNextBtn');
+        const undoLastBtn = document.getElementById('undoLastBtn');
         const resetStatusBtn = document.getElementById('resetStatusBtn');
         const toast = document.getElementById('toast');
 
         onSnapshot(routeDocRef, { includeMetadataChanges: true }, (docSnap) => {
             if (docSnap.exists()) {
                 const cloudData = docSnap.data();
-                
                 routeData = {
                     ...cloudData,
                     stops: predefinedStopsList.map((stopName, idx) => {
@@ -541,38 +190,28 @@
                         return {
                             id: String(idx + 1),
                             name: stopName,
-                            passed: existingStop ? Boolean(existingStop.passed) : false
+                            passed: existingStop ? existingStop.passed : false
                         };
                     })
                 };
-
-                if (docSnap.metadata.hasPendingWrites) {
-                    liveStatusText.innerText = "Syncing...";
-                    statusDot.className = "dot connecting";
-                } else {
-                    liveStatusText.innerText = "Live Sync ✓";
-                    statusDot.className = "dot";
-                }
+                liveStatusText.innerText = docSnap.metadata.hasPendingWrites ? "Updating cloud..." : "Sync Live ✓";
             } else {
                 saveDataToCloud(routeData);
                 liveStatusText.innerText = "Initialized Cloud";
-                statusDot.className = "dot";
             }
             renderApp();
         }, (error) => {
             console.error("Firestore sync error:", error);
-            liveStatusText.innerText = "Offline / Error";
-            statusDot.className = "dot connecting";
+            liveStatusText.innerText = "Sync Error: Check Rules";
             renderApp();
         });
 
-        // Save data to Firestore
         async function saveDataToCloud(newData) {
             try {
                 await setDoc(routeDocRef, newData);
             } catch (e) {
-                console.error("Error updating route in Firestore:", e);
-                showToast("Failed to sync changes.");
+                console.error("Error updating route:", e);
+                showToast("Failed to sync. Check Rules.");
             }
         }
 
@@ -582,7 +221,6 @@
             const currentIndex = routeData.currentStopIndex;
             const stops = routeData.stops || [];
 
-            // Render Current Position Card
             if (currentIndex >= 0 && currentIndex < stops.length) {
                 currentBusStopDisplay.innerHTML = `<span class="badge">CURRENT</span> ${escapeHtml(stops[currentIndex].name)}`;
             } else if (currentIndex >= stops.length && stops.length > 0) {
@@ -591,18 +229,18 @@
                 currentBusStopDisplay.innerHTML = `<span style="color:#94a3b8; font-weight:normal;">Bus has not started yet</span>`;
             }
 
-            // Render Timestamp using en-IN locale
+            // Enable/disable undo button if bus hasn't started
+            undoLastBtn.disabled = (currentIndex < 0);
+
             if (routeData.lastUpdated) {
                 lastUpdatedDisplay.innerText = `Updated at: ${formatExactTimestamp(routeData.lastUpdated)}`;
             } else {
                 lastUpdatedDisplay.innerText = 'Not updated yet today';
             }
 
-            // Render Progress Tag
             const passedCount = stops.filter(s => s.passed).length;
             progressCount.innerText = `${passedCount}/${stops.length} Passed`;
 
-            // Render Stops List
             stopsContainer.innerHTML = '';
             
             stops.forEach((stop, index) => {
@@ -613,7 +251,7 @@
                 stopEl.className = `stop-item ${isCurrent ? 'is-current' : ''} ${isPassed ? 'is-passed' : ''}`;
 
                 stopEl.innerHTML = `
-                    <button data-action="toggle-passed" data-index="${index}" class="checkbox ${isPassed ? 'checked' : ''}" aria-label="Mark ${escapeHtml(stop.name)} as passed">
+                    <button data-action="toggle-passed" data-index="${index}" class="checkbox ${isPassed ? 'checked' : ''}">
                         ${isPassed ? '✓' : ''}
                     </button>
 
@@ -622,8 +260,8 @@
                         <span class="stop-name ${isPassed ? 'line-through' : ''}">${escapeHtml(stop.name)}</span>
                     </div>
 
-                    <div class="bus-icon-wrap">
-                        ${isCurrent ? '<div class="bus-icon" title="Current Bus Location">🚌</div>' : ''}
+                    <div>
+                        ${isCurrent ? '<div class="bus-icon" title="Current Location">🚌</div>' : ''}
                     </div>
                 `;
 
@@ -631,7 +269,6 @@
             });
         }
 
-        // Event listener for Checkboxes in list
         stopsContainer.addEventListener('click', (e) => {
             const btn = e.target.closest('[data-action="toggle-passed"]');
             if (!btn) return;
@@ -640,14 +277,11 @@
             toggleStopPassed(index);
         });
 
-        // Toggle checkbox passed state
         function toggleStopPassed(index) {
             const stops = [...routeData.stops];
             stops[index].passed = !stops[index].passed;
 
             let currentIdx = routeData.currentStopIndex;
-
-            // If user checked the current stop, advance position to next stop
             if (stops[index].passed && currentIdx === index) {
                 currentIdx = index + 1;
             }
@@ -655,16 +289,16 @@
             updateCloudRouteData({ stops, currentStopIndex: currentIdx });
         }
 
+        // Advance to Next Stop
         quickNextBtn.addEventListener('click', () => {
             const stops = routeData.stops;
             let nextIndex = routeData.currentStopIndex + 1;
 
             if (nextIndex > stops.length) {
-                showToast("Already reached final destination!");
+                showToast("Already at final stop");
                 return;
             }
 
-            // Mark all stops prior to nextIndex as passed
             const updatedStops = stops.map((stop, i) => ({
                 ...stop,
                 passed: i < nextIndex
@@ -674,25 +308,39 @@
                 stops: updatedStops,
                 currentStopIndex: nextIndex
             });
-
-            if (nextIndex < stops.length) {
-                showToast(`Advanced to: ${stops[nextIndex].name}`);
-            } else {
-                showToast("Route completed! All stops passed.");
-            }
+            showToast("Advanced to next stop!");
         });
 
-        // Reset Daily Status
+        // Undo Last Stop
+        undoLastBtn.addEventListener('click', () => {
+            let prevIndex = routeData.currentStopIndex - 1;
+
+            if (routeData.currentStopIndex <= -1) {
+                showToast("Bus is at start position");
+                return;
+            }
+
+            const updatedStops = routeData.stops.map((stop, i) => ({
+                ...stop,
+                passed: i < prevIndex
+            }));
+
+            updateCloudRouteData({
+                stops: updatedStops,
+                currentStopIndex: prevIndex
+            });
+            showToast("Reverted to previous stop!");
+        });
+
         resetStatusBtn.addEventListener('click', () => {
             const resetStops = routeData.stops.map(stop => ({ ...stop, passed: false }));
             updateCloudRouteData({
                 stops: resetStops,
                 currentStopIndex: -1
             });
-            showToast("Daily status reset successfully!");
+            showToast("Route status reset!");
         });
 
-        // Helper to update state and sync to cloud
         function updateCloudRouteData(partialData) {
             routeData = {
                 ...routeData,
@@ -703,44 +351,25 @@
             renderApp();
         }
 
-        // Share button handler
         shareButton.addEventListener('click', () => {
             const shareUrl = window.location.href;
-            if (navigator.clipboard && navigator.clipboard.writeText) {
+            if (navigator.clipboard) {
                 navigator.clipboard.writeText(shareUrl).then(() => {
-                    showToast("Link copied to clipboard! 📋");
-                }).catch(() => {
-                    fallbackCopy(shareUrl);
+                    showToast("Link copied!");
                 });
             } else {
-                fallbackCopy(shareUrl);
+                showToast("Share URL: " + shareUrl);
             }
         });
 
-        function fallbackCopy(text) {
-            const tempInput = document.createElement('input');
-            tempInput.value = text;
-            document.body.appendChild(tempInput);
-            tempInput.select();
-            document.execCommand('copy');
-            document.body.removeChild(tempInput);
-            showToast("Link copied to clipboard! 📋");
-        }
-
-        // Helper to display toast messages
         function showToast(msg) {
             toast.innerText = msg;
             toast.style.display = 'block';
-            toast.style.opacity = '1';
             setTimeout(() => {
-                toast.style.opacity = '0';
-                setTimeout(() => {
-                    toast.style.display = 'none';
-                }, 300);
+                toast.style.display = 'none';
             }, 2500);
         }
 
-        // Format exact timestamp using locale 'en-IN' (DD Mon YYYY, hh:mm:ss AM/PM)
         function formatExactTimestamp(timestamp) {
             const date = new Date(timestamp);
             return date.toLocaleString('en-IN', {
@@ -754,9 +383,8 @@
             });
         }
 
-        // Escape HTML for XSS prevention
         function escapeHtml(str) {
-            return String(str).replace(/[&<>"']/g, function(m) {
+            return str.replace(/[&<>"']/g, function(m) {
                 return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
             });
         }
