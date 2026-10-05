@@ -46,12 +46,11 @@
         .checkbox { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #cbd5e1; margin-right: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; background: none; flex-shrink: 0; }
         .checkbox.checked { background: #10b981; border-color: #10b981; color: white; font-weight: bold; font-size: 12px; }
         
-        .stop-info { flex: 1; cursor: pointer; }
+        .stop-info { flex: 1; }
         .stop-num { font-size: 11px; font-weight: 700; color: #94a3b8; margin-right: 4px; }
         .stop-name { font-size: 14px; font-weight: 600; color: #1e293b; }
         .line-through { text-decoration: line-through; color: #64748b; }
         
-        .set-btn { background: #f1f5f9; border: none; color: #475569; font-size: 12px; font-weight: 600; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
         .bus-icon { background: #4f46e5; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; }
         
         .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; font-size: 12px; padding: 10px 16px; border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: none; z-index: 100; }
@@ -236,16 +235,13 @@
                         ${isPassed ? '✓' : ''}
                     </button>
 
-                    <div class="stop-info" data-action="set-current" data-index="${index}">
+                    <div class="stop-info">
                         <span class="stop-num">#${index + 1}</span>
                         <span class="stop-name ${isPassed ? 'line-through' : ''}">${escapeHtml(stop.name)}</span>
                     </div>
 
                     <div>
-                        ${isCurrent 
-                            ? '<div class="bus-icon" title="Current Location">🚌</div>' 
-                            : `<button data-action="set-current" data-index="${index}" class="set-btn">Set Current</button>`
-                        }
+                        ${isCurrent ? '<div class="bus-icon" title="Current Location">🚌</div>' : ''}
                     </div>
                 `;
 
@@ -254,17 +250,11 @@
         }
 
         stopsContainer.addEventListener('click', (e) => {
-            const btn = e.target.closest('[data-action]');
+            const btn = e.target.closest('[data-action="toggle-passed"]');
             if (!btn) return;
 
-            const action = btn.dataset.action;
             const index = parseInt(btn.dataset.index, 10);
-
-            if (action === 'toggle-passed') {
-                toggleStopPassed(index);
-            } else if (action === 'set-current') {
-                setBusCurrentStop(index);
-            }
+            toggleStopPassed(index);
         });
 
         function toggleStopPassed(index) {
@@ -277,18 +267,6 @@
             }
 
             updateCloudRouteData({ stops, currentStopIndex: currentIdx });
-        }
-
-        function setBusCurrentStop(index) {
-            const stops = routeData.stops.map((stop, i) => ({
-                ...stop,
-                passed: i < index
-            }));
-
-            updateCloudRouteData({
-                stops: stops,
-                currentStopIndex: index
-            });
         }
 
         quickNextBtn.addEventListener('click', () => {
