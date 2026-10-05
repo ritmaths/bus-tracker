@@ -31,7 +31,6 @@
         .badge-done { background: #d1fae5; color: #065f46; font-size: 11px; padding: 2px 8px; border-radius: 6px; }
         .updated-at { font-size: 12px; color: #475569; font-weight: 600; margin-top: 4px; }
         
-        /* Action Buttons Container */
         .btn-group { display: flex; gap: 8px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
         
         .action-btn { background: #059669; color: white; border: none; padding: 10px 14px; border-radius: 10px; font-weight: 600; font-size: 13px; cursor: pointer; transition: background 0.2s; flex: 1; min-width: 140px; }
@@ -74,7 +73,7 @@
     <header>
         <div class="header-content">
             <div class="brand-container">
-                <img src="RITSymbol.png" alt="RIT Logo" class="inst-logo" onerror="this.style.display='none'">
+                <img src="rit_logo.png" alt="RIT Logo" class="inst-logo" onerror="this.style.display='none'">
                 <div class="title-box">
                     <h1 id="routeTitleHeader">RIT Bus Route Tracker</h1>
                     <p><span class="dot"></span><span id="liveStatusText">Connecting...</span></p>
@@ -160,7 +159,8 @@
         let routeData = {
             routeName: 'RIT Bus Route Tracker',
             currentStopIndex: -1,
-            lastUpdated: Date.now(),
+            lastUpdated: null,
+            history: [], // Stack of previous timestamps
             stops: predefinedStopsList.map((stopName, idx) => ({
                 id: String(idx + 1),
                 name: stopName,
@@ -185,6 +185,7 @@
                 const cloudData = docSnap.data();
                 routeData = {
                     ...cloudData,
+                    history: cloudData.history || [],
                     stops: predefinedStopsList.map((stopName, idx) => {
                         const existingStop = cloudData.stops ? cloudData.stops.find(s => s.name === stopName) : null;
                         return {
@@ -229,7 +230,7 @@
                 currentBusStopDisplay.innerHTML = `<span style="color:#94a3b8; font-weight:normal;">Bus has not started yet</span>`;
             }
 
-            // Enable/disable undo button if bus hasn't started
+            // Disable undo if at start position or no history
             undoLastBtn.disabled = (currentIndex < 0);
 
             if (routeData.lastUpdated) {
@@ -286,7 +287,15 @@
                 currentIdx = index + 1;
             }
 
-            updateCloudRouteData({ stops, currentStopIndex: currentIdx });
+            // Push current state to history stack
+            const history = [...(routeData.history || []), routeData.lastUpdated];
+
+            updateCloudRouteData({ 
+                stops, 
+                currentStopIndex: currentIdx, 
+                history: history,
+                lastUpdated: Date.now()
+            });
         }
 
         // Advance to Next Stop
@@ -304,14 +313,19 @@
                 passed: i < nextIndex
             }));
 
+            // Save previous timestamp to history stack before updating
+            const history = [...(routeData.history || []), routeData.lastUpdated];
+
             updateCloudRouteData({
                 stops: updatedStops,
-                currentStopIndex: nextIndex
+                currentStopIndex: nextIndex,
+                history: history,
+                lastUpdated: Date.now()
             });
             showToast("Advanced to next stop!");
         });
 
-        // Undo Last Stop
+        // Undo Last Stop (Reverts location AND timestamp)
         undoLastBtn.addEventListener('click', () => {
             let prevIndex = routeData.currentStopIndex - 1;
 
@@ -325,27 +339,34 @@
                 passed: i < prevIndex
             }));
 
+            // Pop last timestamp from history stack
+            const history = [...(routeData.history || [])];
+            const previousTime = history.pop() || null;
+
             updateCloudRouteData({
                 stops: updatedStops,
-                currentStopIndex: prevIndex
+                currentStopIndex: prevIndex,
+                history: history,
+                lastUpdated: previousTime
             });
-            showToast("Reverted to previous stop!");
+            showToast("Reverted stop & time!");
         });
 
         resetStatusBtn.addEventListener('click', () => {
             const resetStops = routeData.stops.map(stop => ({ ...stop, passed: false }));
             updateCloudRouteData({
                 stops: resetStops,
-                currentStopIndex: -1
+                currentStopIndex: -1,
+                history: [],
+                lastUpdated: null
             });
-            showToast("Route status reset!");
+            showToast("Route status & history reset!");
         });
 
         function updateCloudRouteData(partialData) {
             routeData = {
                 ...routeData,
-                ...partialData,
-                lastUpdated: Date.now()
+                ...partialData
             };
             saveDataToCloud(routeData);
             renderApp();
@@ -371,6 +392,7 @@
         }
 
         function formatExactTimestamp(timestamp) {
+            if (!timestamp) return 'Not updated yet today';
             const date = new Date(timestamp);
             return date.toLocaleString('en-IN', {
                 day: '2-digit',
