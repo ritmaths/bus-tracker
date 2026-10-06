@@ -1,18 +1,68 @@
-```html
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Live Bus Stop Tracker - RIT</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Leaflet OpenSource Maps CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    
     <style>
         body { font-family: 'Inter', sans-serif; }
-        .map-container iframe { width: 100%; height: 100%; border: 0; border-radius: 0.75rem; }
+        #map { height: 260px; width: 100%; border-radius: 0.75rem; z-index: 10; }
+        
+        /* Custom map pulse marker animation */
+        .bus-pulse-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .bus-pulse-ring {
+            width: 38px;
+            height: 38px;
+            background: #4f46e5;
+            border: 3px solid #ffffff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.4);
+            animation: busPulse 2s infinite;
+        }
+        @keyframes busPulse {
+            0% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.6); }
+            70% { box-shadow: 0 0 0 12px rgba(79, 70, 229, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
+        }
+
+        .stop-marker-icon {
+            background: #ffffff;
+            border: 2.5px solid #64748b;
+            border-radius: 50%;
+            width: 14px;
+            height: 14px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+        }
+        .stop-marker-passed {
+            background: #10b981;
+            border-color: #059669;
+        }
+        .stop-marker-current {
+            background: #6366f1;
+            border-color: #4338ca;
+            transform: scale(1.3);
+        }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col justify-between pb-8">
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col justify-between pb-8 select-none">
 
     <div>
         <header class="bg-indigo-600 text-white shadow-md sticky top-0 z-50">
@@ -24,12 +74,12 @@
                     <div>
                         <h1 id="routeTitleHeader" class="text-base font-bold leading-snug">RIT Bus Route Tracker</h1>
                         <p class="text-xs text-indigo-200 flex items-center gap-1.5 mt-0.5">
-                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                            <span id="liveStatusText">Live Tracking Active</span>
+                            <span id="syncStatusDot" class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span id="liveStatusText">Connecting to Cloud...</span>
                         </p>
                     </div>
                 </div>
-                <button id="shareButton" class="w-9 h-9 bg-indigo-700 hover:bg-indigo-800 active:bg-indigo-900 rounded-full flex items-center justify-center text-white transition-colors shadow-sm" title="Share Link">
+                <button id="shareButton" class="w-9 h-9 bg-indigo-700 hover:bg-indigo-800 active:bg-indigo-900 rounded-full flex items-center justify-center text-white transition-colors shadow-sm" title="Share Route Link">
                     🔗
                 </button>
             </div>
@@ -38,11 +88,12 @@
         <main class="max-w-md mx-auto p-4 space-y-4">
 
             <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
-                <div class="text-center">
+                <div class="flex justify-between items-center">
                     <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Live Route Status</span>
+                    <span id="speedBadge" class="hidden text-[10px] font-bold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">Moving 0 km/h</span>
                 </div>
                 
-                <!-- Trio View -->
+                <!-- Trio View for Bus Stops -->
                 <div class="space-y-2">
                     <div id="prevStopDisplay" class="text-xs font-semibold text-slate-500 bg-slate-50 p-2.5 rounded-lg border border-dashed border-slate-300 flex items-center gap-2">
                         <span class="bg-slate-200 text-slate-700 font-bold px-1.5 py-0.5 rounded text-[10px] uppercase">Previous</span>
@@ -67,7 +118,7 @@
                 <!-- Action Buttons -->
                 <div class="grid grid-cols-2 gap-2 pt-1">
                     <button id="undoLastBtn" class="bg-rose-600 hover:bg-rose-700 active:bg-rose-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-xs py-2.5 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm">
-                        <span>⏮️</span> Undo Stop
+                        <span>⏮️️</span> Undo Last Stop
                     </button>
                     <button id="quickNextBtn" class="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-xs py-2.5 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm">
                         <span>⏩</span> Advance Stop
@@ -75,19 +126,39 @@
                 </div>
             </div>
 
-            <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-2">
-                <div class="flex items-center justify-between">
-                    <span class="text-xs font-bold text-slate-600 uppercase tracking-wide">📍 Live Location Map</span>
-                    <span id="mapAccuracyTag" class="text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">Stop Center</span>
+            <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-xs font-bold text-slate-700 uppercase tracking-wide">🗺️ Live GPS Stream Map</span>
+                    </div>
+                    <span id="mapAccuracyTag" class="text-[10px] text-slate-500 bg-slate-100 font-medium px-2 py-0.5 rounded-full">Stop sequence</span>
                 </div>
-                <div class="map-container h-52 w-full rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
-                    <iframe id="mapFrame" title="Bus Location Map" loading="lazy" allowfullscreen src="about:blank"></iframe>
+
+                <!-- Continuous GPS Streaming Switch Bar -->
+                <div class="bg-indigo-50 p-3 rounded-xl border border-indigo-100 flex items-center justify-between gap-3">
+                    <div>
+                        <div class="text-xs font-bold text-indigo-950 flex items-center gap-1">
+                            <span>📡 Continuous GPS Stream</span>
+                        </div>
+                        <p class="text-[10px] text-indigo-700 mt-0.5 leading-tight">
+                            Broadcasts continuous live moving coordinates as bus moves.
+                        </p>
+                    </div>
+                    <button id="streamGpsToggleBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-3 rounded-xl shadow transition-colors flex-shrink-0 flex items-center gap-1">
+                        <span>📡</span> Start GPS
+                    </button>
                 </div>
-                <div id="mapExternalLink" class="text-right">
-                    <!-- Dynamic Google Maps External Link -->
+
+                <!-- Leaflet Interactive Map -->
+                <div id="map"></div>
+
+                <div class="flex justify-between items-center text-xs pt-0.5">
+                    <span id="gpsCoordDisplay" class="text-[10px] text-slate-400 font-mono">No GPS fix yet</span>
+                    <a href="#" id="gmapsExternalBtn" target="_blank" class="text-[11px] text-indigo-600 font-semibold hover:underline flex items-center gap-1">Open in Google Maps ↗</a>
                 </div>
             </div>
 
+            <!-- Toolbar Reset -->
             <div class="flex justify-end">
                 <button id="resetStatusBtn" class="text-xs text-slate-600 hover:text-indigo-600 font-semibold bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm transition-colors flex items-center gap-1.5">
                     🔄 Reset Daily Status
@@ -101,7 +172,7 @@
                 </div>
 
                 <div id="stopsContainer" class="space-y-2">
-                    <!-- Stops items will be rendered dynamically here -->
+                    <!-- Dynamic Stop Rows -->
                 </div>
             </div>
         </main>
@@ -114,32 +185,49 @@
         </p>
     </footer>
 
-    <!-- Toast Notification -->
     <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs px-4 py-2.5 rounded-full shadow-lg transition-opacity duration-300 opacity-0 pointer-events-none z-50">
         Action performed
     </div>
 
-    <script>
-        // 18 Stops predefined sequence
-        const predefinedStops = [
-            "JP Nagar Metro Station",
-            "Kadrenahalli Cross",
-            "Kamakhya",
-            "Kathriguppe circle",
-            "Janata Baazar",
-            "Hosakerehalli Banashankari 3rd stage",
-            "Nayandahalli (Mysore road metro)",
-            "Attiguppe",
-            "Maruti mandir, vijaynagar",
-            "Vijayanagar",
-            "Hosahalli Metro Station",
-            "Magadi road tolgate",
-            "Magadi housing board",
-            "Industrial Area, Tolgate",
-            "ESI Hospital Flyover",
-            "Rajajinagar metro",
-            "Mahalakshmi metro station",
-            "Sandal Soap Factory"
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDNplJxXvQMG-2AkcIR12a2eebcfi3pmc0",
+            authDomain: "bus-tracker-rit.firebaseapp.com",
+            projectId: "bus-tracker-rit",
+            storageBucket: "bus-tracker-rit.firebasestorage.app",
+            messagingSenderId: "267033000588",
+            appId: "1:267033000588:web:6d15593b0479622422d9eb",
+            measurementId: "G-BYR8GJFFFT"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const routeDocRef = doc(db, "public_bus_tracker", "active_route");
+
+        // 18 Stops Sequence with GPS Coordinates along Bengaluru Route
+        const predefinedStopsWithCoords = [
+            { name: "JP Nagar Metro Station", lat: 12.9077, lng: 77.5732 },
+            { name: "Kadrenahalli Cross", lat: 12.9189, lng: 77.5682 },
+            { name: "Kamakhya", lat: 12.9264, lng: 77.5587 },
+            { name: "Kathriguppe circle", lat: 12.9327, lng: 77.5539 },
+            { name: "Janata Baazar", lat: 12.9381, lng: 77.5492 },
+            { name: "Hosakerehalli Banashankari 3rd stage", lat: 12.9366, lng: 77.5369 },
+            { name: "Nayandahalli (Mysore road metro)", lat: 12.9518, lng: 77.5255 },
+            { name: "Attiguppe", lat: 12.9587, lng: 77.5342 },
+            { name: "Maruti mandir, vijaynagar", lat: 12.9668, lng: 77.5358 },
+            { name: "Vijayanagar", lat: 12.9712, lng: 77.5373 },
+            { name: "Hosahalli Metro Station", lat: 12.9749, lng: 77.5436 },
+            { name: "Magadi road tolgate", lat: 12.9781, lng: 77.5521 },
+            { name: "Magadi housing board", lat: 12.9835, lng: 77.5532 },
+            { name: "Industrial Area, Tolgate", lat: 12.9881, lng: 77.5528 },
+            { name: "ESI Hospital Flyover", lat: 12.9912, lng: 77.5542 },
+            { name: "Rajajinagar metro", lat: 12.9986, lng: 77.5559 },
+            { name: "Mahalakshmi metro station", lat: 13.0079, lng: 77.5495 },
+            { name: "Sandal Soap Factory", lat: 13.0142, lng: 77.5538 }
         ];
 
         // State Initialization
@@ -147,21 +235,39 @@
             routeName: 'RIT Bus Route Tracker',
             currentStopIndex: -1,
             lastUpdated: null,
-            currentCoords: null, // { lat, lng }
+            liveGpsCoords: null, // { lat, lng, speed, heading, timestamp }
+            isStreamingActive: false,
             history: [],
-            stops: predefinedStops.map((name, idx) => ({ id: idx + 1, name, passed: false }))
+            stops: predefinedStopsWithCoords.map((item, idx) => ({
+                id: idx + 1,
+                name: item.name,
+                lat: item.lat,
+                lng: item.lng,
+                passed: false
+            }))
         };
+
+        let watchPositionId = null;
+
+        // Leaflet Map Handles
+        let leafletMap = null;
+        let busMarker = null;
+        let stopMarkersGroup = null;
+        let routePolyline = null;
 
         // DOM elements
         const routeTitleHeader = document.getElementById('routeTitleHeader');
         const liveStatusText = document.getElementById('liveStatusText');
+        const syncStatusDot = document.getElementById('syncStatusDot');
         const prevStopDisplay = document.getElementById('prevStopDisplay');
         const currentBusStopDisplay = document.getElementById('currentBusStopDisplay');
         const nextStopDisplay = document.getElementById('nextStopDisplay');
         const lastUpdatedDisplay = document.getElementById('lastUpdatedDisplay');
-        const mapFrame = document.getElementById('mapFrame');
         const mapAccuracyTag = document.getElementById('mapAccuracyTag');
-        const mapExternalLink = document.getElementById('mapExternalLink');
+        const gmapsExternalBtn = document.getElementById('gmapsExternalBtn');
+        const gpsCoordDisplay = document.getElementById('gpsCoordDisplay');
+        const speedBadge = document.getElementById('speedBadge');
+        const streamGpsToggleBtn = document.getElementById('streamGpsToggleBtn');
         const stopsContainer = document.getElementById('stopsContainer');
         const progressCount = document.getElementById('progressCount');
         const shareButton = document.getElementById('shareButton');
@@ -170,11 +276,83 @@
         const resetStatusBtn = document.getElementById('resetStatusBtn');
         const toast = document.getElementById('toast');
 
-        window.onload = function() {
-            renderApp();
-        };
+        // Initialize Map
+        function initLeafletMap() {
+            const initialLat = predefinedStopsWithCoords[0].lat;
+            const initialLng = predefinedStopsWithCoords[0].lng;
 
-        // Render Application UI
+            leafletMap = L.map('map', {
+                zoomControl: true,
+                attributionControl: false
+            }).setView([initialLat, initialLng], 13);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19
+            }).addTo(leafletMap);
+
+            stopMarkersGroup = L.layerGroup().addTo(leafletMap);
+
+            // Draw route path polyline joining all stops
+            const routeLatLngs = predefinedStopsWithCoords.map(s => [s.lat, s.lng]);
+            routePolyline = L.polyline(routeLatLngs, {
+                color: '#6366f1',
+                weight: 4,
+                opacity: 0.7,
+                dashArray: '8, 8'
+            }).addTo(leafletMap);
+
+            // Custom Bus Marker
+            const busIcon = L.divIcon({
+                className: 'bus-pulse-icon',
+                html: '<div class="bus-pulse-ring">🚌</div>',
+                iconSize: [38, 38],
+                iconAnchor: [19, 19]
+            });
+
+            busMarker = L.marker([initialLat, initialLng], { icon: busIcon }).addTo(leafletMap);
+        }
+
+        // Firestore Realtime Subscription
+        onSnapshot(routeDocRef, { includeMetadataChanges: true }, (docSnap) => {
+            if (docSnap.exists()) {
+                const cloudData = docSnap.data();
+                routeData = {
+                    ...cloudData,
+                    history: cloudData.history || [],
+                    stops: predefinedStopsWithCoords.map((item, idx) => {
+                        const existing = cloudData.stops ? cloudData.stops.find(s => s.name === item.name) : null;
+                        return {
+                            id: idx + 1,
+                            name: item.name,
+                            lat: item.lat,
+                            lng: item.lng,
+                            passed: existing ? existing.passed : false
+                        };
+                    })
+                };
+                liveStatusText.innerText = docSnap.metadata.hasPendingWrites ? "Syncing..." : "Cloud Live Sync ✓";
+                syncStatusDot.className = "w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse";
+            } else {
+                saveDataToCloud(routeData);
+                liveStatusText.innerText = "Initialized Firestore";
+            }
+            renderApp();
+        }, (error) => {
+            console.error("Firestore sync error:", error);
+            liveStatusText.innerText = "Offline / Rule Error";
+            syncStatusDot.className = "w-2.5 h-2.5 rounded-full bg-rose-500";
+            renderApp();
+        });
+
+        async function saveDataToCloud(newData) {
+            try {
+                await setDoc(routeDocRef, newData);
+            } catch (e) {
+                console.error("Failed to sync cloud:", e);
+                showToast("Failed to sync update with cloud.");
+            }
+        }
+
         function renderApp() {
             const currentIndex = routeData.currentStopIndex;
             const stops = routeData.stops;
@@ -184,7 +362,7 @@
                 prevStopDisplay.innerHTML = `<span class="bg-slate-200 text-slate-700 font-bold px-1.5 py-0.5 rounded text-[10px] uppercase">Previous</span> <span class="truncate">${escapeHtml(stops[currentIndex - 1].name)}</span>`;
                 prevStopDisplay.style.display = 'flex';
             } else if (currentIndex === 0) {
-                prevStopDisplay.innerHTML = `<span class="bg-slate-200 text-slate-700 font-bold px-1.5 py-0.5 rounded text-[10px] uppercase">Previous</span> <span class="truncate">Starting Point</span>`;
+                prevStopDisplay.innerHTML = `<span class="bg-slate-200 text-slate-700 font-bold px-1.5 py-0.5 rounded text-[10px] uppercase">Previous</span> <span class="truncate">Starting Terminal</span>`;
                 prevStopDisplay.style.display = 'flex';
             } else {
                 prevStopDisplay.style.display = 'none';
@@ -208,24 +386,30 @@
                 nextStopDisplay.style.display = 'none';
             }
 
-            // Undo Button State
             undoLastBtn.disabled = (currentIndex < 0);
 
-            // Last Updated Timestamp
             if (routeData.lastUpdated) {
                 lastUpdatedDisplay.innerText = `Updated at: ${formatTimestamp(routeData.lastUpdated)}`;
             } else {
                 lastUpdatedDisplay.innerText = 'Updated: Not updated yet today';
             }
 
-            // Embedded Map Renderer
-            updateMapDisplay();
+            // Stream Button State
+            if (watchPositionId !== null || routeData.isStreamingActive) {
+                streamGpsToggleBtn.innerHTML = `<span>⏹️</span> Stop Streaming`;
+                streamGpsToggleBtn.className = `bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold py-2 px-3 rounded-xl shadow transition-colors flex-shrink-0 flex items-center gap-1 animate-pulse`;
+            } else {
+                streamGpsToggleBtn.innerHTML = `<span>📡</span> Start GPS`;
+                streamGpsToggleBtn.className = `bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-3 rounded-xl shadow transition-colors flex-shrink-0 flex items-center gap-1`;
+            }
 
-            // Progress Tag
+            updateMapVisuals();
+
+            // Progress Count
             const passedCount = stops.filter(s => s.passed).length;
             progressCount.innerText = `${passedCount}/${stops.length} Passed`;
 
-            // Stops Sequence List Render
+            // Render Stops Checklist
             stopsContainer.innerHTML = '';
             stops.forEach((stop, index) => {
                 const isCurrent = (index === routeData.currentStopIndex);
@@ -254,60 +438,159 @@
             });
         }
 
-        // Map Embedded View Handler
-        function updateMapDisplay() {
-            let mapQuery = "";
-            let isExactGps = false;
+        function updateMapVisuals() {
+            if (!leafletMap) return;
 
-            if (routeData.currentCoords) {
-                mapQuery = `${routeData.currentCoords.lat},${routeData.currentCoords.lng}`;
-                isExactGps = true;
+            stopMarkersGroup.clearLayers();
+
+            // 1. Render all 18 stop markers
+            routeData.stops.forEach((stop, idx) => {
+                const isCurrent = idx === routeData.currentStopIndex;
+                const isPassed = stop.passed;
+
+                let markerClass = 'stop-marker-icon';
+                if (isCurrent) markerClass += ' stop-marker-current';
+                else if (isPassed) markerClass += ' stop-marker-passed';
+
+                const customIcon = L.divIcon({
+                    className: markerClass,
+                    iconSize: [14, 14],
+                    iconAnchor: [7, 7]
+                });
+
+                const m = L.marker([stop.lat, stop.lng], { icon: customIcon });
+                m.bindPopup(`<b>Stop #${idx + 1}: ${escapeHtml(stop.name)}</b>`);
+                stopMarkersGroup.addLayer(m);
+            });
+
+            // 2. Determine Bus Position (Live GPS Stream or Current Stop)
+            let currentLat, currentLng;
+            let isContinuous = false;
+
+            if (routeData.liveGpsCoords && routeData.liveGpsCoords.lat) {
+                currentLat = routeData.liveGpsCoords.lat;
+                currentLng = routeData.liveGpsCoords.lng;
+                isContinuous = true;
+
+                gpsCoordDisplay.innerText = `GPS: ${currentLat.toFixed(5)}, ${currentLng.toFixed(5)}`;
+                
+                if (routeData.liveGpsCoords.speed) {
+                    const speedKmh = Math.round(routeData.liveGpsCoords.speed * 3.6);
+                    speedBadge.innerText = `Moving ${speedKmh} km/h`;
+                    speedBadge.classList.remove('hidden');
+                } else {
+                    speedBadge.classList.add('hidden');
+                }
             } else if (routeData.currentStopIndex >= 0 && routeData.currentStopIndex < routeData.stops.length) {
-                const currentStopName = routeData.stops[routeData.currentStopIndex].name;
-                mapQuery = `${currentStopName}, Bengaluru, Karnataka`;
+                const curStop = routeData.stops[routeData.currentStopIndex];
+                currentLat = curStop.lat;
+                currentLng = curStop.lng;
+                gpsCoordDisplay.innerText = `At Stop: ${curStop.name}`;
+                speedBadge.classList.add('hidden');
             } else {
-                mapQuery = "JP Nagar Metro Station, Bengaluru, Karnataka";
+                currentLat = predefinedStopsWithCoords[0].lat;
+                currentLng = predefinedStopsWithCoords[0].lng;
+                gpsCoordDisplay.innerText = "Bus at terminal";
+                speedBadge.classList.add('hidden');
             }
 
-            const embedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
-            mapFrame.src = embedUrl;
+            // Update Bus Marker Location
+            busMarker.setLatLng([currentLat, currentLng]);
+            leafletMap.panTo([currentLat, currentLng], { animate: true });
 
-            if (isExactGps) {
-                mapAccuracyTag.innerText = "Exact GPS Pin";
+            if (isContinuous) {
+                mapAccuracyTag.innerText = "📡 Continuous GPS Streaming";
                 mapAccuracyTag.className = "text-[10px] text-emerald-700 bg-emerald-100 font-bold px-2 py-0.5 rounded-full";
             } else {
-                mapAccuracyTag.innerText = "Stop Area Center";
+                mapAccuracyTag.innerText = "Stop Sequence Map";
                 mapAccuracyTag.className = "text-[10px] text-slate-500 bg-slate-100 font-medium px-2 py-0.5 rounded-full";
             }
 
-            const externalUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`;
-            mapExternalLink.innerHTML = `<a href="${externalUrl}" target="_blank" class="text-[11px] text-indigo-600 font-semibold hover:underline flex items-center justify-end gap-1">Open in Google Maps ↗</a>`;
+            gmapsExternalBtn.href = `https://www.google.com/maps?q=${currentLat},${currentLng}`;
         }
 
-        // Dynamic GPS Request with Native Browser Consent Dialog
-        function requestGpsLocationWithConsent(callback) {
+        streamGpsToggleBtn.addEventListener('click', () => {
+            if (watchPositionId !== null) {
+                stopGpsStream();
+            } else {
+                startGpsStream();
+            }
+        });
+
+        function startGpsStream() {
+            if (!("geolocation" in navigator)) {
+                showToast("Geolocation is not supported by your browser");
+                return;
+            }
+
+            showToast("Requesting GPS stream permission...");
+
+            watchPositionId = navigator.geolocation.watchPosition(
+                (pos) => {
+                    const coords = {
+                        lat: pos.coords.latitude,
+                        lng: pos.coords.longitude,
+                        speed: pos.coords.speed || 0,
+                        heading: pos.coords.heading || 0,
+                        timestamp: Date.now()
+                    };
+
+                    updateCloudRouteData({
+                        liveGpsCoords: coords,
+                        isStreamingActive: true,
+                        lastUpdated: Date.now()
+                    });
+                },
+                (err) => {
+                    console.warn("GPS Watch error:", err);
+                    showToast("GPS Error: " + err.message);
+                    stopGpsStream();
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+
+            renderApp();
+        }
+
+        function stopGpsStream() {
+            if (watchPositionId !== null) {
+                navigator.geolocation.clearWatch(watchPositionId);
+                watchPositionId = null;
+            }
+            updateCloudRouteData({
+                isStreamingActive: false
+            });
+            showToast("GPS Stream stopped");
+            renderApp();
+        }
+
+        // Single-shot location permission fetch for manual button clicks
+        function fetchSingleGpsPosition(callback) {
             if ("geolocation" in navigator) {
-                showToast("Requesting GPS location permission...");
                 navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        const coords = {
-                            lat: position.coords.latitude,
-                            lng: position.coords.longitude
-                        };
-                        callback(coords);
+                    (pos) => {
+                        callback({
+                            lat: pos.coords.latitude,
+                            lng: pos.coords.longitude,
+                            speed: pos.coords.speed || 0,
+                            timestamp: Date.now()
+                        });
                     },
-                    (error) => {
-                        console.warn("Location permission denied or failed:", error.message);
-                        callback(null); // Continue smoothly even if user declines
+                    (err) => {
+                        console.warn("Single position permission denied/failed:", err);
+                        callback(null);
                     },
-                    { enableHighAccuracy: true, timeout: 7000, maximumAge: 0 }
+                    { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
                 );
             } else {
                 callback(null);
             }
         }
 
-        // Toggle individual stop
         stopsContainer.addEventListener('click', (e) => {
             const btn = e.target.closest('[data-action="toggle"]');
             if (!btn) return;
@@ -325,18 +608,26 @@
                 currentIdx = index + 1;
             }
 
-            requestGpsLocationWithConsent((coords) => {
-                pushHistoryState();
-                routeData.stops = stops;
-                routeData.currentStopIndex = currentIdx;
-                routeData.currentCoords = coords;
-                routeData.lastUpdated = Date.now();
-                renderApp();
+            fetchSingleGpsPosition((coords) => {
+                const historyItem = {
+                    stops: JSON.parse(JSON.stringify(routeData.stops)),
+                    currentStopIndex: routeData.currentStopIndex,
+                    liveGpsCoords: routeData.liveGpsCoords,
+                    lastUpdated: routeData.lastUpdated
+                };
+                const history = [...(routeData.history || []), historyItem];
+
+                updateCloudRouteData({
+                    stops,
+                    currentStopIndex: currentIdx,
+                    history: history,
+                    liveGpsCoords: coords || routeData.liveGpsCoords,
+                    lastUpdated: Date.now()
+                });
                 showToast("Stop status updated!");
             });
         }
 
-        // Advance Stop Button
         quickNextBtn.addEventListener('click', () => {
             const stops = routeData.stops;
             let nextIndex = routeData.currentStopIndex + 1;
@@ -351,68 +642,76 @@
                 passed: i < nextIndex
             }));
 
-            requestGpsLocationWithConsent((coords) => {
-                pushHistoryState();
-                routeData.stops = updatedStops;
-                routeData.currentStopIndex = nextIndex;
-                routeData.currentCoords = coords;
-                routeData.lastUpdated = Date.now();
-                renderApp();
+            fetchSingleGpsPosition((coords) => {
+                const historyItem = {
+                    stops: JSON.parse(JSON.stringify(routeData.stops)),
+                    currentStopIndex: routeData.currentStopIndex,
+                    liveGpsCoords: routeData.liveGpsCoords,
+                    lastUpdated: routeData.lastUpdated
+                };
+                const history = [...(routeData.history || []), historyItem];
+
+                updateCloudRouteData({
+                    stops: updatedStops,
+                    currentStopIndex: nextIndex,
+                    history: history,
+                    liveGpsCoords: coords || routeData.liveGpsCoords,
+                    lastUpdated: Date.now()
+                });
                 showToast("Advanced to next stop!");
             });
         });
 
-        // Undo Last Stop Action
         undoLastBtn.addEventListener('click', () => {
-            if (routeData.history.length === 0) {
-                showToast("No previous step to undo!");
+            const history = [...(routeData.history || [])];
+            if (history.length === 0) {
+                showToast("No history to undo!");
                 return;
             }
 
-            const previousState = routeData.history.pop();
-            routeData.stops = previousState.stops;
-            routeData.currentStopIndex = previousState.currentStopIndex;
-            routeData.currentCoords = previousState.currentCoords;
-            routeData.lastUpdated = previousState.lastUpdated;
+            const previousState = history.pop();
 
-            renderApp();
-            showToast("Reverted to previous stop!");
-        });
-
-        // Reset Daily Status Action
-        resetStatusBtn.addEventListener('click', () => {
-            pushHistoryState();
-            routeData.stops = routeData.stops.map(s => ({ ...s, passed: false }));
-            routeData.currentStopIndex = -1;
-            routeData.currentCoords = null;
-            routeData.lastUpdated = null;
-
-            renderApp();
-            showToast("Route status reset for today!");
-        });
-
-        // Helper: Store state for undo history
-        function pushHistoryState() {
-            routeData.history.push({
-                stops: JSON.parse(JSON.stringify(routeData.stops)),
-                currentStopIndex: routeData.currentStopIndex,
-                currentCoords: routeData.currentCoords,
-                lastUpdated: routeData.lastUpdated
+            updateCloudRouteData({
+                stops: previousState.stops,
+                currentStopIndex: previousState.currentStopIndex,
+                history: history,
+                liveGpsCoords: previousState.liveGpsCoords,
+                lastUpdated: previousState.lastUpdated
             });
-        }
+            showToast("Reverted stop, location & timestamp!");
+        });
 
-        // Share route button
-        shareButton.addEventListener('click', () => {
-            const url = window.location.href;
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText(url);
-                showToast("Route link copied to clipboard!");
-            } else {
-                showToast("Share URL: " + url);
+        resetStatusBtn.addEventListener('click', () => {
+            if (confirm("Are you sure you want to reset the bus route for today?")) {
+                const resetStops = routeData.stops.map(stop => ({ ...stop, passed: false }));
+                updateCloudRouteData({
+                    stops: resetStops,
+                    currentStopIndex: -1,
+                    history: [],
+                    liveGpsCoords: null,
+                    lastUpdated: null
+                });
+                showToast("Route status reset!");
             }
         });
 
-        // Toast display helper
+        function updateCloudRouteData(partialData) {
+            routeData = { ...routeData, ...partialData };
+            saveDataToCloud(routeData);
+            renderApp();
+        }
+
+        shareButton.addEventListener('click', () => {
+            const shareUrl = window.location.href;
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(shareUrl).then(() => {
+                    showToast("Route link copied!");
+                });
+            } else {
+                showToast("URL: " + shareUrl);
+            }
+        });
+
         function showToast(msg) {
             toast.innerText = msg;
             toast.classList.remove('opacity-0', 'pointer-events-none');
@@ -423,7 +722,6 @@
             }, 2500);
         }
 
-        // Format Date Timestamp
         function formatTimestamp(ts) {
             if (!ts) return 'Not updated yet today';
             const date = new Date(ts);
@@ -435,13 +733,16 @@
             });
         }
 
-        // HTML Escape helper
         function escapeHtml(str) {
             return str.replace(/[&<>"']/g, function(m) {
                 return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
             });
         }
+
+        // Initialize Map on window load
+        window.addEventListener('load', () => {
+            initLeafletMap();
+        });
     </script>
 </body>
 </html>
-```
