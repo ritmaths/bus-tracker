@@ -1,154 +1,127 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Bus Stop Tracker</title>
+    <title>Live Bus Stop Tracker - RIT</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        body { background-color: #f1f5f9; color: #1e293b; padding-bottom: 30px; }
-        
-        header { background-color: #4f46e5; color: white; padding: 12px 16px; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .header-content { max-width: 480px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-        
-        .brand-container { display: flex; align-items: center; gap: 12px; }
-        .inst-logo { width: 40px; height: 40px; object-fit: contain; border-radius: 6px; background: white; padding: 2px; }
-        
-        .title-box h1 { font-size: 17px; font-weight: 700; line-height: 1.2; }
-        .title-box p { font-size: 12px; color: #c7d2fe; display: flex; align-items: center; gap: 6px; margin-top: 2px; }
-        .dot { width: 8px; height: 8px; background-color: #34d399; border-radius: 50%; display: inline-block; }
-        
-        .share-btn { background: #4338ca; border: none; color: white; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        
-        main { max-width: 480px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
-        
-        .card { background: white; border-radius: 16px; padding: 16px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        
-        .summary-card { text-align: center; }
-        .label { font-size: 11px; text-transform: uppercase; font-weight: 700; color: #94a3b8; letter-spacing: 0.5px; }
-        
-        /* Stop Trio View Styling */
-        .stop-trio { display: flex; flex-direction: column; gap: 8px; margin: 12px 0 8px; }
-        .sub-stop { font-size: 13px; font-weight: 500; color: #64748b; background: #f8fafc; padding: 6px 12px; border-radius: 8px; border: 1px dashed #cbd5e1; display: flex; align-items: center; justify-content: center; gap: 6px; }
-        .sub-stop span { font-weight: 700; font-size: 10px; color: #475569; background: #e2e8f0; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
-        
-        .current-stop { font-size: 17px; font-weight: 700; color: #1e1b4b; background: #eef2ff; border: 1.5px solid #6366f1; padding: 10px 12px; border-radius: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .badge { background: #4f46e5; color: white; font-size: 10px; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
-        .badge-done { background: #10b981; color: white; font-size: 10px; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
-        
-        .updated-at { font-size: 12px; color: #475569; font-weight: 600; margin-top: 4px; }
-        
-        .btn-group { display: flex; gap: 8px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
-        
-        .action-btn { background: #059669; color: white; border: none; padding: 10px 14px; border-radius: 10px; font-weight: 600; font-size: 13px; cursor: pointer; transition: background 0.2s; flex: 1; min-width: 140px; }
-        .action-btn:active { background: #047857; }
-        
-        .undo-btn { background: #dc2626; color: white; border: none; padding: 10px 14px; border-radius: 10px; font-weight: 600; font-size: 13px; cursor: pointer; transition: background 0.2s; flex: 1; min-width: 120px; }
-        .undo-btn:active { background: #b91c1c; }
-        .undo-btn:disabled { background: #cbd5e1; cursor: not-allowed; opacity: 0.7; }
-        
-        .toolbar { display: flex; justify-content: flex-end; background: white; padding: 10px 14px; border-radius: 12px; border: 1px solid #e2e8f0; }
-        .tool-btn { background: none; border: none; color: #475569; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; }
-        .tool-btn:hover { color: #4f46e5; }
-        
-        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-        .section-header h2 { font-size: 13px; text-transform: uppercase; color: #475569; font-weight: 700; }
-        .progress-tag { font-size: 12px; background: #f1f5f9; color: #64748b; padding: 2px 8px; border-radius: 12px; }
-        
-        .stops-list { display: flex; flex-direction: column; gap: 10px; }
-        .stop-item { display: flex; align-items: center; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; background: white; }
-        .stop-item.is-current { border-color: #6366f1; background: #eef2ff; }
-        .stop-item.is-passed { background: #f8fafc; opacity: 0.7; }
-        
-        .checkbox { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #cbd5e1; margin-right: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; background: none; flex-shrink: 0; }
-        .checkbox.checked { background: #10b981; border-color: #10b981; color: white; font-weight: bold; font-size: 12px; }
-        
-        .stop-info { flex: 1; }
-        .stop-num { font-size: 11px; font-weight: 700; color: #94a3b8; margin-right: 4px; }
-        .stop-name { font-size: 14px; font-weight: 600; color: #1e293b; }
-        .line-through { text-decoration: line-through; color: #64748b; }
-        
-        .bus-icon { background: #4f46e5; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; }
-        
-        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; font-size: 12px; padding: 10px 16px; border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: none; z-index: 100; }
-        
-        footer { text-align: center; margin-top: 24px; font-size: 12px; color: #64748b; font-weight: 500; }
+        body { font-family: 'Inter', sans-serif; }
+        .map-container iframe { width: 100%; height: 100%; border: 0; border-radius: 0.75rem; }
     </style>
 </head>
-<body>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col justify-between pb-8">
 
-    <header>
-        <div class="header-content">
-            <div class="brand-container">
-                <img src="rit_logo.png" alt="RIT Logo" class="inst-logo" onerror="this.style.display='none'">
-                <div class="title-box">
-                    <h1 id="routeTitleHeader">RIT Bus Route Tracker</h1>
-                    <p><span class="dot"></span><span id="liveStatusText">Connecting...</span></p>
+    <div>
+        <header class="bg-indigo-600 text-white shadow-md sticky top-0 z-50">
+            <div class="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-white p-1 flex items-center justify-center font-bold text-indigo-700 shadow-sm text-lg">
+                        RIT
+                    </div>
+                    <div>
+                        <h1 id="routeTitleHeader" class="text-base font-bold leading-snug">RIT Bus Route Tracker</h1>
+                        <p class="text-xs text-indigo-200 flex items-center gap-1.5 mt-0.5">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span id="liveStatusText">Live Tracking Active</span>
+                        </p>
+                    </div>
+                </div>
+                <button id="shareButton" class="w-9 h-9 bg-indigo-700 hover:bg-indigo-800 active:bg-indigo-900 rounded-full flex items-center justify-center text-white transition-colors shadow-sm" title="Share Link">
+                    🔗
+                </button>
+            </div>
+        </header>
+
+        <main class="max-w-md mx-auto p-4 space-y-4">
+
+            <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
+                <div class="text-center">
+                    <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Live Route Status</span>
+                </div>
+                
+                <!-- Trio View -->
+                <div class="space-y-2">
+                    <div id="prevStopDisplay" class="text-xs font-semibold text-slate-500 bg-slate-50 p-2.5 rounded-lg border border-dashed border-slate-300 flex items-center gap-2">
+                        <span class="bg-slate-200 text-slate-700 font-bold px-1.5 py-0.5 rounded text-[10px] uppercase">Previous</span>
+                        <span class="truncate">None</span>
+                    </div>
+
+                    <div id="currentBusStopDisplay" class="text-base font-bold text-indigo-950 bg-indigo-50 border-2 border-indigo-500 p-3 rounded-xl flex items-center gap-2 shadow-sm">
+                        <span class="bg-indigo-600 text-white font-bold px-2 py-0.5 rounded text-[10px] uppercase">Current</span>
+                        <span class="truncate">Loading...</span>
+                    </div>
+
+                    <div id="nextStopDisplay" class="text-xs font-semibold text-slate-500 bg-slate-50 p-2.5 rounded-lg border border-dashed border-slate-300 flex items-center gap-2">
+                        <span class="bg-slate-200 text-slate-700 font-bold px-1.5 py-0.5 rounded text-[10px] uppercase">Next</span>
+                        <span class="truncate">Loading...</span>
+                    </div>
+                </div>
+
+                <div class="text-center pt-1">
+                    <div id="lastUpdatedDisplay" class="text-xs text-slate-500 font-medium">Updated: Not updated yet today</div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="grid grid-cols-2 gap-2 pt-1">
+                    <button id="undoLastBtn" class="bg-rose-600 hover:bg-rose-700 active:bg-rose-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-xs py-2.5 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm">
+                        <span>⏮️</span> Undo Stop
+                    </button>
+                    <button id="quickNextBtn" class="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-xs py-2.5 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm">
+                        <span>⏩</span> Advance Stop
+                    </button>
                 </div>
             </div>
-            <button id="shareButton" class="share-btn" title="Share Link">🔗</button>
-        </div>
-    </header>
 
-    <main>
-        <div class="card summary-card">
-            <div class="label">Live Route Status</div>
-            
-            <div class="stop-trio">
-                <div id="prevStopDisplay" class="sub-stop"><span>Previous</span> None</div>
-                <div id="currentBusStopDisplay" class="current-stop">Loading...</div>
-                <div id="nextStopDisplay" class="sub-stop"><span>Next</span> Loading...</div>
+            <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-slate-600 uppercase tracking-wide">📍 Live Location Map</span>
+                    <span id="mapAccuracyTag" class="text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">Stop Center</span>
+                </div>
+                <div class="map-container h-52 w-full rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
+                    <iframe id="mapFrame" title="Bus Location Map" loading="lazy" allowfullscreen src="about:blank"></iframe>
+                </div>
+                <div id="mapExternalLink" class="text-right">
+                    <!-- Dynamic Google Maps External Link -->
+                </div>
             </div>
 
-            <div id="lastUpdatedDisplay" class="updated-at">Updated: --</div>
-            
-            <div class="btn-group">
-                <button id="undoLastBtn" class="undo-btn">⏮️ Undo Last Stop</button>
-                <button id="quickNextBtn" class="action-btn">⏩ Advance Stop</button>
-            </div>
-        </div>
-
-        <div class="toolbar">
-            <button id="resetStatusBtn" class="tool-btn">🔄 Reset Daily Status</button>
-        </div>
-
-        <div class="card">
-            <div class="section-header">
-                <h2>Stops Sequence</h2>
-                <span id="progressCount" class="progress-tag">0/0 Passed</span>
+            <div class="flex justify-end">
+                <button id="resetStatusBtn" class="text-xs text-slate-600 hover:text-indigo-600 font-semibold bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm transition-colors flex items-center gap-1.5">
+                    🔄 Reset Daily Status
+                </button>
             </div>
 
-            <div id="stopsContainer" class="stops-list"></div>
-        </div>
+            <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <h2 class="text-xs font-bold uppercase text-slate-500 tracking-wider">Stops Sequence</h2>
+                    <span id="progressCount" class="text-xs font-semibold bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full">0/18 Passed</span>
+                </div>
 
-        <footer>
-            Conceptualized and executed by Dr. Srikantha N, Department of Mathematics, RIT
-        </footer>
-    </main>
+                <div id="stopsContainer" class="space-y-2">
+                    <!-- Stops items will be rendered dynamically here -->
+                </div>
+            </div>
+        </main>
+    </div>
 
-    <div id="toast" class="toast">Action completed</div>
+    <footer class="max-w-md mx-auto text-center px-4 mt-6">
+        <p class="text-xs text-slate-500 font-medium leading-relaxed">
+            Conceptualized and executed by<br>
+            <strong class="text-slate-700">Dr. Srikantha N</strong>, Department of Mathematics, RIT
+        </p>
+    </footer>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs px-4 py-2.5 rounded-full shadow-lg transition-opacity duration-300 opacity-0 pointer-events-none z-50">
+        Action performed
+    </div>
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyDNplJxXvQMG-2AkcIR12a2eebcfi3pmc0",
-            authDomain: "bus-tracker-rit.firebaseapp.com",
-            projectId: "bus-tracker-rit",
-            storageBucket: "bus-tracker-rit.firebasestorage.app",
-            messagingSenderId: "267033000588",
-            appId: "1:267033000588:web:6d15593b0479622422d9eb",
-            measurementId: "G-BYR8GJFFFT"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-
-        const routeDocRef = doc(db, "public_bus_tracker", "active_route");
-
-        // Updated 18 Stop Route Sequence
-        const predefinedStopsList = [
+    <script>
+        // 18 Stops predefined sequence
+        const predefinedStops = [
             "JP Nagar Metro Station",
             "Kadrenahalli Cross",
             "Kamakhya",
@@ -169,24 +142,26 @@
             "Sandal Soap Factory"
         ];
 
+        // State Initialization
         let routeData = {
             routeName: 'RIT Bus Route Tracker',
             currentStopIndex: -1,
             lastUpdated: null,
+            currentCoords: null, // { lat, lng }
             history: [],
-            stops: predefinedStopsList.map((stopName, idx) => ({
-                id: String(idx + 1),
-                name: stopName,
-                passed: false
-            }))
+            stops: predefinedStops.map((name, idx) => ({ id: idx + 1, name, passed: false }))
         };
 
+        // DOM elements
         const routeTitleHeader = document.getElementById('routeTitleHeader');
         const liveStatusText = document.getElementById('liveStatusText');
         const prevStopDisplay = document.getElementById('prevStopDisplay');
         const currentBusStopDisplay = document.getElementById('currentBusStopDisplay');
         const nextStopDisplay = document.getElementById('nextStopDisplay');
         const lastUpdatedDisplay = document.getElementById('lastUpdatedDisplay');
+        const mapFrame = document.getElementById('mapFrame');
+        const mapAccuracyTag = document.getElementById('mapAccuracyTag');
+        const mapExternalLink = document.getElementById('mapExternalLink');
         const stopsContainer = document.getElementById('stopsContainer');
         const progressCount = document.getElementById('progressCount');
         const shareButton = document.getElementById('shareButton');
@@ -195,119 +170,146 @@
         const resetStatusBtn = document.getElementById('resetStatusBtn');
         const toast = document.getElementById('toast');
 
-        onSnapshot(routeDocRef, { includeMetadataChanges: true }, (docSnap) => {
-            if (docSnap.exists()) {
-                const cloudData = docSnap.data();
-                routeData = {
-                    ...cloudData,
-                    history: cloudData.history || [],
-                    stops: predefinedStopsList.map((stopName, idx) => {
-                        const existingStop = cloudData.stops ? cloudData.stops.find(s => s.name === stopName) : null;
-                        return {
-                            id: String(idx + 1),
-                            name: stopName,
-                            passed: existingStop ? existingStop.passed : false
-                        };
-                    })
-                };
-                liveStatusText.innerText = docSnap.metadata.hasPendingWrites ? "Updating cloud..." : "Sync Live ✓";
-            } else {
-                saveDataToCloud(routeData);
-                liveStatusText.innerText = "Initialized Cloud";
-            }
+        window.onload = function() {
             renderApp();
-        }, (error) => {
-            console.error("Firestore sync error:", error);
-            liveStatusText.innerText = "Sync Error: Check Rules";
-            renderApp();
-        });
+        };
 
-        async function saveDataToCloud(newData) {
-            try {
-                await setDoc(routeDocRef, newData);
-            } catch (e) {
-                console.error("Error updating route:", e);
-                showToast("Failed to sync. Check Rules.");
-            }
-        }
-
+        // Render Application UI
         function renderApp() {
-            routeTitleHeader.innerText = routeData.routeName || 'RIT Bus Route Tracker';
-
             const currentIndex = routeData.currentStopIndex;
-            const stops = routeData.stops || [];
+            const stops = routeData.stops;
 
-            // 1. Previous Stop Display
-            if (currentIndex > 0 && currentIndex <= stops.length) {
-                prevStopDisplay.innerHTML = `<span>Previous</span> ${escapeHtml(stops[currentIndex - 1].name)}`;
+            // 1. Previous Stop
+            if (currentIndex > 0) {
+                prevStopDisplay.innerHTML = `<span class="bg-slate-200 text-slate-700 font-bold px-1.5 py-0.5 rounded text-[10px] uppercase">Previous</span> <span class="truncate">${escapeHtml(stops[currentIndex - 1].name)}</span>`;
                 prevStopDisplay.style.display = 'flex';
             } else if (currentIndex === 0) {
-                prevStopDisplay.innerHTML = `<span>Previous</span> Starting Point`;
+                prevStopDisplay.innerHTML = `<span class="bg-slate-200 text-slate-700 font-bold px-1.5 py-0.5 rounded text-[10px] uppercase">Previous</span> <span class="truncate">Starting Point</span>`;
                 prevStopDisplay.style.display = 'flex';
             } else {
                 prevStopDisplay.style.display = 'none';
             }
 
-            // 2. Current Stop Display
+            // 2. Current Stop
             if (currentIndex >= 0 && currentIndex < stops.length) {
-                currentBusStopDisplay.innerHTML = `<span class="badge">Current</span> ${escapeHtml(stops[currentIndex].name)}`;
-            } else if (currentIndex >= stops.length && stops.length > 0) {
-                currentBusStopDisplay.innerHTML = `<span class="badge-done">Finished</span> Route completed 🎉`;
+                currentBusStopDisplay.innerHTML = `<span class="bg-indigo-600 text-white font-bold px-2 py-0.5 rounded text-[10px] uppercase">Current</span> <span class="truncate">${escapeHtml(stops[currentIndex].name)}</span>`;
+            } else if (currentIndex >= stops.length) {
+                currentBusStopDisplay.innerHTML = `<span class="bg-emerald-600 text-white font-bold px-2 py-0.5 rounded text-[10px] uppercase">Finished</span> <span class="truncate">Route Completed 🎉</span>`;
             } else {
-                currentBusStopDisplay.innerHTML = `<span style="color:#94a3b8; font-weight:normal;">Bus has not started yet</span>`;
+                currentBusStopDisplay.innerHTML = `<span class="text-slate-400 font-normal">Bus has not started yet</span>`;
             }
 
-            // 3. Next Stop Display
+            // 3. Next Stop
             if (currentIndex >= -1 && currentIndex < stops.length - 1) {
                 const nextIdx = currentIndex === -1 ? 0 : currentIndex + 1;
-                nextStopDisplay.innerHTML = `<span>Next</span> ${escapeHtml(stops[nextIdx].name)}`;
+                nextStopDisplay.innerHTML = `<span class="bg-slate-200 text-slate-700 font-bold px-1.5 py-0.5 rounded text-[10px] uppercase">Next</span> <span class="truncate">${escapeHtml(stops[nextIdx].name)}</span>`;
                 nextStopDisplay.style.display = 'flex';
             } else {
                 nextStopDisplay.style.display = 'none';
             }
 
-            // Disable undo button if at start
+            // Undo Button State
             undoLastBtn.disabled = (currentIndex < 0);
 
+            // Last Updated Timestamp
             if (routeData.lastUpdated) {
-                lastUpdatedDisplay.innerText = `Updated at: ${formatExactTimestamp(routeData.lastUpdated)}`;
+                lastUpdatedDisplay.innerText = `Updated at: ${formatTimestamp(routeData.lastUpdated)}`;
             } else {
-                lastUpdatedDisplay.innerText = 'Not updated yet today';
+                lastUpdatedDisplay.innerText = 'Updated: Not updated yet today';
             }
 
+            // Embedded Map Renderer
+            updateMapDisplay();
+
+            // Progress Tag
             const passedCount = stops.filter(s => s.passed).length;
             progressCount.innerText = `${passedCount}/${stops.length} Passed`;
 
+            // Stops Sequence List Render
             stopsContainer.innerHTML = '';
-            
             stops.forEach((stop, index) => {
                 const isCurrent = (index === routeData.currentStopIndex);
                 const isPassed = stop.passed;
 
-                const stopEl = document.createElement('div');
-                stopEl.className = `stop-item ${isCurrent ? 'is-current' : ''} ${isPassed ? 'is-passed' : ''}`;
+                const item = document.createElement('div');
+                item.className = `flex items-center p-3 rounded-xl border transition-all ${
+                    isCurrent ? 'bg-indigo-50 border-indigo-400 shadow-sm' : 
+                    isPassed ? 'bg-slate-50 border-slate-200 opacity-70' : 'bg-white border-slate-200'
+                }`;
 
-                stopEl.innerHTML = `
-                    <button data-action="toggle-passed" data-index="${index}" class="checkbox ${isPassed ? 'checked' : ''}">
-                        ${isPassed ? '✓' : ''}
+                item.innerHTML = `
+                    <button data-action="toggle" data-index="${index}" class="w-6 h-6 rounded-full border-2 flex items-center justify-center font-bold text-xs mr-3 transition-colors ${
+                        isPassed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 text-transparent hover:border-indigo-400'
+                    }">
+                        ✓
                     </button>
-
-                    <div class="stop-info">
-                        <span class="stop-num">#${index + 1}</span>
-                        <span class="stop-name ${isPassed ? 'line-through' : ''}">${escapeHtml(stop.name)}</span>
+                    <div class="flex-1 min-w-0">
+                        <span class="text-[10px] font-extrabold text-slate-400 mr-1.5">#${index + 1}</span>
+                        <span class="text-xs font-semibold ${isPassed ? 'line-through text-slate-500' : 'text-slate-800'}">${escapeHtml(stop.name)}</span>
                     </div>
-
-                    <div>
-                        ${isCurrent ? '<div class="bus-icon" title="Current Location">🚌</div>' : ''}
-                    </div>
+                    ${isCurrent ? '<div class="w-7 h-7 bg-indigo-600 text-white rounded-full flex items-center justify-center text-xs shadow-sm">🚌</div>' : ''}
                 `;
 
-                stopsContainer.appendChild(stopEl);
+                stopsContainer.appendChild(item);
             });
         }
 
+        // Map Embedded View Handler
+        function updateMapDisplay() {
+            let mapQuery = "";
+            let isExactGps = false;
+
+            if (routeData.currentCoords) {
+                mapQuery = `${routeData.currentCoords.lat},${routeData.currentCoords.lng}`;
+                isExactGps = true;
+            } else if (routeData.currentStopIndex >= 0 && routeData.currentStopIndex < routeData.stops.length) {
+                const currentStopName = routeData.stops[routeData.currentStopIndex].name;
+                mapQuery = `${currentStopName}, Bengaluru, Karnataka`;
+            } else {
+                mapQuery = "JP Nagar Metro Station, Bengaluru, Karnataka";
+            }
+
+            const embedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+            mapFrame.src = embedUrl;
+
+            if (isExactGps) {
+                mapAccuracyTag.innerText = "Exact GPS Pin";
+                mapAccuracyTag.className = "text-[10px] text-emerald-700 bg-emerald-100 font-bold px-2 py-0.5 rounded-full";
+            } else {
+                mapAccuracyTag.innerText = "Stop Area Center";
+                mapAccuracyTag.className = "text-[10px] text-slate-500 bg-slate-100 font-medium px-2 py-0.5 rounded-full";
+            }
+
+            const externalUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`;
+            mapExternalLink.innerHTML = `<a href="${externalUrl}" target="_blank" class="text-[11px] text-indigo-600 font-semibold hover:underline flex items-center justify-end gap-1">Open in Google Maps ↗</a>`;
+        }
+
+        // Dynamic GPS Request with Native Browser Consent Dialog
+        function requestGpsLocationWithConsent(callback) {
+            if ("geolocation" in navigator) {
+                showToast("Requesting GPS location permission...");
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const coords = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+                        callback(coords);
+                    },
+                    (error) => {
+                        console.warn("Location permission denied or failed:", error.message);
+                        callback(null); // Continue smoothly even if user declines
+                    },
+                    { enableHighAccuracy: true, timeout: 7000, maximumAge: 0 }
+                );
+            } else {
+                callback(null);
+            }
+        }
+
+        // Toggle individual stop
         stopsContainer.addEventListener('click', (e) => {
-            const btn = e.target.closest('[data-action="toggle-passed"]');
+            const btn = e.target.closest('[data-action="toggle"]');
             if (!btn) return;
 
             const index = parseInt(btn.dataset.index, 10);
@@ -323,22 +325,24 @@
                 currentIdx = index + 1;
             }
 
-            const history = [...(routeData.history || []), routeData.lastUpdated];
-
-            updateCloudRouteData({ 
-                stops, 
-                currentStopIndex: currentIdx, 
-                history: history,
-                lastUpdated: Date.now()
+            requestGpsLocationWithConsent((coords) => {
+                pushHistoryState();
+                routeData.stops = stops;
+                routeData.currentStopIndex = currentIdx;
+                routeData.currentCoords = coords;
+                routeData.lastUpdated = Date.now();
+                renderApp();
+                showToast("Stop status updated!");
             });
         }
 
+        // Advance Stop Button
         quickNextBtn.addEventListener('click', () => {
             const stops = routeData.stops;
             let nextIndex = routeData.currentStopIndex + 1;
 
             if (nextIndex > stops.length) {
-                showToast("Already at final stop");
+                showToast("Already reached the final stop!");
                 return;
             }
 
@@ -347,88 +351,83 @@
                 passed: i < nextIndex
             }));
 
-            const history = [...(routeData.history || []), routeData.lastUpdated];
-
-            updateCloudRouteData({
-                stops: updatedStops,
-                currentStopIndex: nextIndex,
-                history: history,
-                lastUpdated: Date.now()
+            requestGpsLocationWithConsent((coords) => {
+                pushHistoryState();
+                routeData.stops = updatedStops;
+                routeData.currentStopIndex = nextIndex;
+                routeData.currentCoords = coords;
+                routeData.lastUpdated = Date.now();
+                renderApp();
+                showToast("Advanced to next stop!");
             });
-            showToast("Advanced to next stop!");
         });
 
+        // Undo Last Stop Action
         undoLastBtn.addEventListener('click', () => {
-            let prevIndex = routeData.currentStopIndex - 1;
-
-            if (routeData.currentStopIndex <= -1) {
-                showToast("Bus is at start position");
+            if (routeData.history.length === 0) {
+                showToast("No previous step to undo!");
                 return;
             }
 
-            const updatedStops = routeData.stops.map((stop, i) => ({
-                ...stop,
-                passed: i < prevIndex
-            }));
+            const previousState = routeData.history.pop();
+            routeData.stops = previousState.stops;
+            routeData.currentStopIndex = previousState.currentStopIndex;
+            routeData.currentCoords = previousState.currentCoords;
+            routeData.lastUpdated = previousState.lastUpdated;
 
-            const history = [...(routeData.history || [])];
-            const previousTime = history.pop() || null;
-
-            updateCloudRouteData({
-                stops: updatedStops,
-                currentStopIndex: prevIndex,
-                history: history,
-                lastUpdated: previousTime
-            });
-            showToast("Reverted stop & time!");
-        });
-
-        resetStatusBtn.addEventListener('click', () => {
-            const resetStops = routeData.stops.map(stop => ({ ...stop, passed: false }));
-            updateCloudRouteData({
-                stops: resetStops,
-                currentStopIndex: -1,
-                history: [],
-                lastUpdated: null
-            });
-            showToast("Route status & history reset!");
-        });
-
-        function updateCloudRouteData(partialData) {
-            routeData = {
-                ...routeData,
-                ...partialData
-            };
-            saveDataToCloud(routeData);
             renderApp();
+            showToast("Reverted to previous stop!");
+        });
+
+        // Reset Daily Status Action
+        resetStatusBtn.addEventListener('click', () => {
+            pushHistoryState();
+            routeData.stops = routeData.stops.map(s => ({ ...s, passed: false }));
+            routeData.currentStopIndex = -1;
+            routeData.currentCoords = null;
+            routeData.lastUpdated = null;
+
+            renderApp();
+            showToast("Route status reset for today!");
+        });
+
+        // Helper: Store state for undo history
+        function pushHistoryState() {
+            routeData.history.push({
+                stops: JSON.parse(JSON.stringify(routeData.stops)),
+                currentStopIndex: routeData.currentStopIndex,
+                currentCoords: routeData.currentCoords,
+                lastUpdated: routeData.lastUpdated
+            });
         }
 
+        // Share route button
         shareButton.addEventListener('click', () => {
-            const shareUrl = window.location.href;
+            const url = window.location.href;
             if (navigator.clipboard) {
-                navigator.clipboard.writeText(shareUrl).then(() => {
-                    showToast("Link copied!");
-                });
+                navigator.clipboard.writeText(url);
+                showToast("Route link copied to clipboard!");
             } else {
-                showToast("Share URL: " + shareUrl);
+                showToast("Share URL: " + url);
             }
         });
 
+        // Toast display helper
         function showToast(msg) {
             toast.innerText = msg;
-            toast.style.display = 'block';
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            toast.classList.add('opacity-100');
             setTimeout(() => {
-                toast.style.display = 'none';
+                toast.classList.remove('opacity-100');
+                toast.classList.add('opacity-0', 'pointer-events-none');
             }, 2500);
         }
 
-        function formatExactTimestamp(timestamp) {
-            if (!timestamp) return 'Not updated yet today';
-            const date = new Date(timestamp);
-            return date.toLocaleString('en-IN', {
-                day: '2-digit',
-                month: 'short',
-                year: 'numeric',
+        // Format Date Timestamp
+        function formatTimestamp(ts) {
+            if (!ts) return 'Not updated yet today';
+            const date = new Date(ts);
+            return date.toLocaleTimeString('en-IN', {
                 hour: '2-digit',
                 minute: '2-digit',
                 second: '2-digit',
@@ -436,6 +435,7 @@
             });
         }
 
+        // HTML Escape helper
         function escapeHtml(str) {
             return str.replace(/[&<>"']/g, function(m) {
                 return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
@@ -444,3 +444,4 @@
     </script>
 </body>
 </html>
+```
