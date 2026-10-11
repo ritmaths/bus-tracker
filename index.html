@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Live Bus Stop Tracker - RIT</title>
+    
+    <!-- PWA App Icon & Manifest Meta Tags -->
+    <link rel="icon" type="image/png" href="RITLogo.png">
+    <link rel="apple-touch-icon" href="RITLogo.png">
+    
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts -->
@@ -67,7 +72,8 @@
         <header class="bg-indigo-600 text-white shadow-md sticky top-0 z-50">
             <div class="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
                 <div class="flex items-center gap-3">
-                    <img src="rit_logo.png" alt="RIT Logo" class="w-10 h-10 object-contain rounded-lg bg-white p-1 shadow-sm" onerror="this.style.display='none'">
+                    <!-- App Logo Added Here -->
+                    <img src="RITLogo.png" alt="RIT Logo" class="w-10 h-10 object-contain rounded-lg bg-white p-1 shadow-sm" onerror="this.src='rit_logo.png'">
                     <div>
                         <h1 id="routeTitleHeader" class="text-base font-bold leading-snug">RIT Bus Route Tracker</h1>
                         <p class="text-xs text-indigo-200 flex items-center gap-1.5 mt-0.5">
