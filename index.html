@@ -283,6 +283,19 @@
         const resetStatusBtn = document.getElementById('resetStatusBtn');
         const toast = document.getElementById('toast');
 
+        // Distance Calculation Helper (Haversine formula in meters)
+        function getDistanceInMeters(lat1, lon1, lat2, lon2) {
+            const R = 6371e3;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = 
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        }
+
         function initLeafletMap() {
             const initialLat = predefinedStopsWithCoords[0].lat;
             const initialLng = predefinedStopsWithCoords[0].lng;
@@ -298,7 +311,7 @@
 
             stopMarkersGroup = L.layerGroup().addTo(leafletMap);
 
-            // Draw route path polyline connecting all 18 stops
+            // Draw route path polyline connecting all stops
             const routeLatLngs = predefinedStopsWithCoords.map(s => [s.lat, s.lng]);
             routePolyline = L.polyline(routeLatLngs, {
                 color: '#6366f1',
@@ -483,7 +496,6 @@
 
             stopMarkersGroup.clearLayers();
 
-            // 1. Render all 18 stop markers
             routeData.stops.forEach((stop, idx) => {
                 const isCurrent = idx === routeData.currentStopIndex;
                 const isPassed = stop.passed;
@@ -503,7 +515,6 @@
                 stopMarkersGroup.addLayer(m);
             });
 
-            // 2. Determine Bus Position (Live GPS Stream or Current Stop)
             let currentLat, currentLng;
             let isContinuous = false;
 
@@ -534,7 +545,6 @@
                 speedBadge.classList.add('hidden');
             }
 
-            // Update Bus Marker Position
             busMarker.setLatLng([currentLat, currentLng]);
             leafletMap.panTo([currentLat, currentLng], { animate: true });
 
@@ -578,15 +588,44 @@
                         timestamp: Date.now()
                     };
 
-                    // Perform reverse geocoding to resolve landmark name
+                    // Automatic stop detection based on proximity (within 40 meters)
+                    let newCurrentIndex = routeData.currentStopIndex;
+                    let stops = [...routeData.stops];
+                    
+                    if (newCurrentIndex < 0) newCurrentIndex = 0;
+
+                    for (let i = 0; i < stops.length; i++) {
+                        const distance = getDistanceInMeters(lat, lng, stops[i].lat, stops[i].lng);
+                        if (distance < 40 && i >= newCurrentIndex) {
+                            newCurrentIndex = i;
+                            stops = stops.map((s, idx) => ({
+                                ...s,
+                                passed: idx <= newCurrentIndex
+                            }));
+                            break;
+                        }
+                    }
+
                     const detectedName = await reverseGeocodeLandmark(lat, lng);
 
                     updateCloudRouteData({
                         liveGpsCoords: coords,
+                        stops: stops,
+                        currentStopIndex: newCurrentIndex,
                         detectedLandmarkName: detectedName || routeData.detectedLandmarkName,
                         isStreamingActive: true,
                         lastUpdated: Date.now()
                     });
+
+                    // AUTO-STOP: Stop tracking automatically if final destination (MSRIT) is reached within 40m
+                    const finalStopIndex = stops.length - 1;
+                    if (newCurrentIndex >= finalStopIndex) {
+                        const finalStopDistance = getDistanceInMeters(lat, lng, stops[finalStopIndex].lat, stops[finalStopIndex].lng);
+                        if (finalStopDistance < 40) {
+                            stopGpsStream();
+                            showToast("Destination reached! Location tracking stopped automatically.");
+                        }
+                    }
                 },
                 (err) => {
                     console.warn("GPS Watch error:", err);
@@ -615,7 +654,6 @@
             renderApp();
         }
 
-        // Single-shot location permission fetch with Reverse Geocoding
         function fetchSingleGpsPosition(callback) {
             if ("geolocation" in navigator) {
                 navigator.geolocation.getCurrentPosition(
@@ -800,7 +838,6 @@
             });
         }
 
-        // Initialize Map on window load
         window.addEventListener('load', () => {
             initLeafletMap();
         });
