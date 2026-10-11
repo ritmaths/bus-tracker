@@ -118,16 +118,6 @@
                 <div class="text-center pt-1">
                     <div id="lastUpdatedDisplay" class="text-xs text-slate-500 font-medium">Updated: Not updated yet today</div>
                 </div>
-
-                <!-- Action Buttons -->
-                <div class="grid grid-cols-2 gap-2 pt-1">
-                    <button id="undoLastBtn" class="bg-rose-600 hover:bg-rose-700 active:bg-rose-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-xs py-2.5 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm">
-                        <span>⏮</span> Undo Last Stop
-                    </button>
-                    <button id="quickNextBtn" class="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-xs py-2.5 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm">
-                        <span>⏩</span> Advance Stop
-                    </button>
-                </div>
             </div>
 
             <!-- Interactive Map & Live Stream Card -->
@@ -143,14 +133,14 @@
                 <div class="bg-indigo-50 p-3 rounded-xl border border-indigo-100 flex items-center justify-between gap-3">
                     <div>
                         <div class="text-xs font-bold text-indigo-950 flex items-center gap-1">
-                            <span>📡 Continuous GPS Stream</span>
+                            <span>📡 Automatic Driver Tracker</span>
                         </div>
                         <p class="text-[10px] text-indigo-700 mt-0.5 leading-tight">
-                            Broadcasts moving coordinates & reverse geocodes landmarks continuously.
+                            Click when starting. Automatically updates stops & stops at destination.
                         </p>
                     </div>
                     <button id="streamGpsToggleBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-3 rounded-xl shadow transition-colors flex-shrink-0 flex items-center gap-1">
-                        <span>📡</span> Start GPS
+                        <span>🚌</span> Bus Started
                     </button>
                 </div>
 
@@ -168,18 +158,6 @@
                 <button id="resetStatusBtn" class="text-xs text-slate-600 hover:text-indigo-600 font-semibold bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm transition-colors flex items-center gap-1.5">
                     🔄 Reset Daily Status
                 </button>
-            </div>
-
-            <!-- Stops Sequence List -->
-            <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
-                <div class="flex items-center justify-between border-b border-slate-100 pb-2">
-                    <h2 class="text-xs font-bold uppercase text-slate-500 tracking-wider">Stops Sequence</h2>
-                    <span id="progressCount" class="text-xs font-semibold bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full">0/18 Passed</span>
-                </div>
-
-                <div id="stopsContainer" class="space-y-2">
-                    <!-- Dynamic Stop Rows -->
-                </div>
             </div>
         </main>
     </div>
@@ -243,7 +221,6 @@
             liveGpsCoords: null,
             detectedLandmarkName: null,
             isStreamingActive: false,
-            history: [],
             stops: predefinedStopsWithCoords.map((item, idx) => ({
                 id: idx + 1,
                 name: item.name,
@@ -275,11 +252,7 @@
         const gpsCoordDisplay = document.getElementById('gpsCoordDisplay');
         const speedBadge = document.getElementById('speedBadge');
         const streamGpsToggleBtn = document.getElementById('streamGpsToggleBtn');
-        const stopsContainer = document.getElementById('stopsContainer');
-        const progressCount = document.getElementById('progressCount');
         const shareButton = document.getElementById('shareButton');
-        const quickNextBtn = document.getElementById('quickNextBtn');
-        const undoLastBtn = document.getElementById('undoLastBtn');
         const resetStatusBtn = document.getElementById('resetStatusBtn');
         const toast = document.getElementById('toast');
 
@@ -362,7 +335,6 @@
                 const cloudData = docSnap.data();
                 routeData = {
                     ...cloudData,
-                    history: cloudData.history || [],
                     stops: predefinedStopsWithCoords.map((item, idx) => {
                         const existing = cloudData.stops ? cloudData.stops.find(s => s.name === item.name) : null;
                         return {
@@ -439,56 +411,22 @@
                 detectedLandmarkText.innerText = `Terminal: ${stops[0].name}`;
             }
 
-            undoLastBtn.disabled = (currentIndex < 0);
-
             if (routeData.lastUpdated) {
                 lastUpdatedDisplay.innerText = `Updated at: ${formatTimestamp(routeData.lastUpdated)}`;
             } else {
                 lastUpdatedDisplay.innerText = 'Updated: Not updated yet today';
             }
 
-            // Stream Button State
+            // Stream Button State ("Bus Started" / "Stop Tracking")
             if (watchPositionId !== null || routeData.isStreamingActive) {
-                streamGpsToggleBtn.innerHTML = `<span>⏹️</span> Stop Streaming`;
+                streamGpsToggleBtn.innerHTML = `<span>⏹️</span> Stop Tracking`;
                 streamGpsToggleBtn.className = `bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold py-2 px-3 rounded-xl shadow transition-colors flex-shrink-0 flex items-center gap-1 animate-pulse`;
             } else {
-                streamGpsToggleBtn.innerHTML = `<span>📡</span> Start GPS`;
+                streamGpsToggleBtn.innerHTML = `<span>🚌</span> Bus Started`;
                 streamGpsToggleBtn.className = `bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-3 rounded-xl shadow transition-colors flex-shrink-0 flex items-center gap-1`;
             }
 
             updateMapVisuals();
-
-            // Progress Count
-            const passedCount = stops.filter(s => s.passed).length;
-            progressCount.innerText = `${passedCount}/${stops.length} Passed`;
-
-            // Render Stops Checklist
-            stopsContainer.innerHTML = '';
-            stops.forEach((stop, index) => {
-                const isCurrent = (index === routeData.currentStopIndex);
-                const isPassed = stop.passed;
-
-                const item = document.createElement('div');
-                item.className = `flex items-center p-3 rounded-xl border transition-all ${
-                    isCurrent ? 'bg-indigo-50 border-indigo-400 shadow-sm' : 
-                    isPassed ? 'bg-slate-50 border-slate-200 opacity-70' : 'bg-white border-slate-200'
-                }`;
-
-                item.innerHTML = `
-                    <button data-action="toggle" data-index="${index}" class="w-6 h-6 rounded-full border-2 flex items-center justify-center font-bold text-xs mr-3 transition-colors ${
-                        isPassed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 text-transparent hover:border-indigo-400'
-                    }">
-                        ✓
-                    </button>
-                    <div class="flex-1 min-w-0">
-                        <span class="text-[10px] font-extrabold text-slate-400 mr-1.5">#${index + 1}</span>
-                        <span class="text-xs font-semibold ${isPassed ? 'line-through text-slate-500' : 'text-slate-800'}">${escapeHtml(stop.name)}</span>
-                    </div>
-                    ${isCurrent ? '<div class="w-7 h-7 bg-indigo-600 text-white rounded-full flex items-center justify-center text-xs shadow-sm">🚌</div>' : ''}
-                `;
-
-                stopsContainer.appendChild(item);
-            });
         }
 
         function updateMapVisuals() {
@@ -549,7 +487,7 @@
             leafletMap.panTo([currentLat, currentLng], { animate: true });
 
             if (isContinuous) {
-                mapAccuracyTag.innerText = "📡 Continuous GPS Streaming";
+                mapAccuracyTag.innerText = "📡 Live Driver Tracking";
                 mapAccuracyTag.className = "text-[10px] text-emerald-700 bg-emerald-100 font-bold px-2 py-0.5 rounded-full";
             } else {
                 mapAccuracyTag.innerText = "Stop Sequence Map";
@@ -573,7 +511,7 @@
                 return;
             }
 
-            showToast("Requesting GPS stream permission...");
+            showToast("Bus journey started. Tracking location...");
 
             watchPositionId = navigator.geolocation.watchPosition(
                 async (pos) => {
@@ -623,7 +561,7 @@
                         const finalStopDistance = getDistanceInMeters(lat, lng, stops[finalStopIndex].lat, stops[finalStopIndex].lng);
                         if (finalStopDistance < 40) {
                             stopGpsStream();
-                            showToast("Destination reached! Location tracking stopped automatically.");
+                            showToast("Destination MSRIT reached! Location tracking stopped automatically.");
                         }
                     }
                 },
@@ -650,133 +588,9 @@
             updateCloudRouteData({
                 isStreamingActive: false
             });
-            showToast("GPS Stream stopped");
+            showToast("Tracking stopped");
             renderApp();
         }
-
-        function fetchSingleGpsPosition(callback) {
-            if ("geolocation" in navigator) {
-                navigator.geolocation.getCurrentPosition(
-                    async (pos) => {
-                        const lat = pos.coords.latitude;
-                        const lng = pos.coords.longitude;
-                        const detectedName = await reverseGeocodeLandmark(lat, lng);
-
-                        callback({
-                            coords: {
-                                lat: lat,
-                                lng: lng,
-                                speed: pos.coords.speed || 0,
-                                timestamp: Date.now()
-                            },
-                            detectedLandmarkName: detectedName
-                        });
-                    },
-                    (err) => {
-                        console.warn("Single position permission denied/failed:", err);
-                        callback({ coords: null, detectedLandmarkName: null });
-                    },
-                    { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-                );
-            } else {
-                callback({ coords: null, detectedLandmarkName: null });
-            }
-        }
-
-        stopsContainer.addEventListener('click', (e) => {
-            const btn = e.target.closest('[data-action="toggle"]');
-            if (!btn) return;
-
-            const index = parseInt(btn.dataset.index, 10);
-            toggleStopPassed(index);
-        });
-
-        function toggleStopPassed(index) {
-            const stops = [...routeData.stops];
-            stops[index].passed = !stops[index].passed;
-
-            let currentIdx = routeData.currentStopIndex;
-            if (stops[index].passed && currentIdx === index) {
-                currentIdx = index + 1;
-            }
-
-            fetchSingleGpsPosition(({ coords, detectedLandmarkName }) => {
-                const historyItem = {
-                    stops: JSON.parse(JSON.stringify(routeData.stops)),
-                    currentStopIndex: routeData.currentStopIndex,
-                    liveGpsCoords: routeData.liveGpsCoords,
-                    detectedLandmarkName: routeData.detectedLandmarkName,
-                    lastUpdated: routeData.lastUpdated
-                };
-                const history = [...(routeData.history || []), historyItem];
-
-                updateCloudRouteData({
-                    stops,
-                    currentStopIndex: currentIdx,
-                    history: history,
-                    liveGpsCoords: coords || routeData.liveGpsCoords,
-                    detectedLandmarkName: detectedLandmarkName || routeData.detectedLandmarkName,
-                    lastUpdated: Date.now()
-                });
-                showToast("Stop status updated!");
-            });
-        }
-
-        quickNextBtn.addEventListener('click', () => {
-            const stops = routeData.stops;
-            let nextIndex = routeData.currentStopIndex + 1;
-
-            if (nextIndex > stops.length) {
-                showToast("Already reached the final stop!");
-                return;
-            }
-
-            const updatedStops = stops.map((stop, i) => ({
-                ...stop,
-                passed: i < nextIndex
-            }));
-
-            fetchSingleGpsPosition(({ coords, detectedLandmarkName }) => {
-                const historyItem = {
-                    stops: JSON.parse(JSON.stringify(routeData.stops)),
-                    currentStopIndex: routeData.currentStopIndex,
-                    liveGpsCoords: routeData.liveGpsCoords,
-                    detectedLandmarkName: routeData.detectedLandmarkName,
-                    lastUpdated: routeData.lastUpdated
-                };
-                const history = [...(routeData.history || []), historyItem];
-
-                updateCloudRouteData({
-                    stops: updatedStops,
-                    currentStopIndex: nextIndex,
-                    history: history,
-                    liveGpsCoords: coords || routeData.liveGpsCoords,
-                    detectedLandmarkName: detectedLandmarkName || (nextIndex < stops.length ? stops[nextIndex].name : routeData.detectedLandmarkName),
-                    lastUpdated: Date.now()
-                });
-                showToast("Advanced to next stop!");
-            });
-        });
-
-        undoLastBtn.addEventListener('click', () => {
-            const history = [...(routeData.history || [])];
-            if (history.length === 0) {
-                showToast("No history to undo!");
-                return;
-            }
-
-            const previousState = history.pop();
-
-            updateCloudRouteData({
-                stops: previousState.stops,
-                currentStopIndex: previousState.currentStopIndex,
-                history: history,
-                liveGpsCoords: previousState.liveGpsCoords,
-                detectedLandmarkName: previousState.detectedLandmarkName,
-                lastUpdated: previousState.lastUpdated
-            });
-            showToast("Reverted stop, location & timestamp!");
-        });
 
         resetStatusBtn.addEventListener('click', () => {
             if (confirm("Are you sure you want to reset the bus route for today?")) {
@@ -784,7 +598,6 @@
                 updateCloudRouteData({
                     stops: resetStops,
                     currentStopIndex: -1,
-                    history: [],
                     liveGpsCoords: null,
                     detectedLandmarkName: null,
                     lastUpdated: null
