@@ -166,7 +166,7 @@
         </p>
     </footer>
 
-    <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs px-4 py-2.5 rounded-full shadow-lg transition-opacity duration-300 opacity-0 pointer-events-none z-50">
+    <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs px-4 py-2.5 rounded-full shadow-lg transition-opacity duration-300 opacity-0 pointer-events-none z-50 text-center max-w-xs">
         Action performed
     </div>
 
@@ -346,7 +346,6 @@
         renderApp();
         initLeafletMap();
 
-        // Connect to Firebase with error catcher
         onSnapshot(routeDocRef, { includeMetadataChanges: true }, (docSnap) => {
             if (docSnap.exists()) {
                 const cloudData = docSnap.data();
@@ -539,7 +538,7 @@
 
         streamGpsToggleBtn.addEventListener('click', () => {
             if (watchPositionId === null && !routeData.isStreamingActive) {
-                startGpsStream();
+                verifyLocationAndStart();
             }
         });
 
@@ -553,12 +552,45 @@
             }
         }
 
-        function startGpsStream() {
+        // Safety restriction check: Ensures driver is within 100 meters of JP Nagar Metro Station before starting
+        function verifyLocationAndStart() {
             if (!("geolocation" in navigator)) {
                 showToast("Geolocation is not supported by your browser");
                 return;
             }
 
+            showToast("Checking starting location...");
+
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    const currentLat = pos.coords.latitude;
+                    const currentLng = pos.coords.longitude;
+                    const startTerminal = predefinedStopsWithCoords[0]; // JP Nagar Metro Station
+
+                    const distanceToStart = getDistanceInMeters(
+                        currentLat,
+                        currentLng,
+                        startTerminal.lat,
+                        startTerminal.lng
+                    );
+
+                    // 100 meters starting radius restriction
+                    if (distanceToStart <= 100) {
+                        startGpsStream();
+                    } else {
+                        const distRounded = Math.round(distanceToStart);
+                        showToast(`⚠️ Cannot start: You are ${distRounded}m away. Must be within 100m of JP Nagar Metro Station.`);
+                    }
+                },
+                (err) => {
+                    console.warn("Location check error:", err);
+                    showToast("GPS Error: " + err.message);
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+        }
+
+        function startGpsStream() {
             requestWakeLock();
             showToast("Bus journey started...");
 
@@ -682,7 +714,7 @@
             setTimeout(() => {
                 toast.classList.remove('opacity-100');
                 toast.classList.add('opacity-0', 'pointer-events-none');
-            }, 2500);
+            }, 3000);
         }
 
         function formatTimestamp(ts) {
