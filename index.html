@@ -21,7 +21,6 @@
         body { font-family: 'Inter', sans-serif; }
         #map { height: 260px; width: 100%; border-radius: 0.75rem; z-index: 10; }
         
-        /* Custom map pulse marker animation */
         .bus-pulse-icon {
             display: flex;
             align-items: center;
@@ -81,9 +80,14 @@
                         </p>
                     </div>
                 </div>
-                <button id="shareButton" class="w-9 h-9 bg-indigo-700 hover:bg-indigo-800 active:bg-indigo-900 rounded-full flex items-center justify-center text-white transition-colors shadow-sm" title="Share Route Link">
-                    🔗
-                </button>
+                <div class="flex items-center gap-2">
+                    <button id="globalResetBtn" class="bg-indigo-700 hover:bg-indigo-800 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow transition-colors flex items-center gap-1" title="Reset Route">
+                        🔄 Reset
+                    </button>
+                    <button id="shareButton" class="w-9 h-9 bg-indigo-700 hover:bg-indigo-800 active:bg-indigo-900 rounded-full flex items-center justify-center text-white transition-colors shadow-sm" title="Share Route Link">
+                        🔗
+                    </button>
+                </div>
             </div>
         </header>
 
@@ -105,12 +109,12 @@
 
                     <div id="currentBusStopDisplay" class="text-base font-bold text-indigo-950 bg-indigo-50 border-2 border-indigo-500 p-3 rounded-xl flex items-center gap-2 shadow-sm">
                         <span class="bg-indigo-600 text-white font-bold px-2 py-0.5 rounded text-[10px] uppercase">Current</span>
-                        <span class="truncate">Loading...</span>
+                        <span class="truncate text-slate-400 font-normal">Bus has not started yet</span>
                     </div>
 
                     <div id="nextStopDisplay" class="text-xs font-semibold text-slate-500 bg-slate-50 p-2.5 rounded-lg border border-dashed border-slate-300 flex items-center gap-2">
                         <span class="bg-slate-200 text-slate-700 font-bold px-1.5 py-0.5 rounded text-[10px] uppercase">Next</span>
-                        <span class="truncate">Loading...</span>
+                        <span class="truncate">JP Nagar Metro Station</span>
                     </div>
                 </div>
 
@@ -151,13 +155,6 @@
                     <span id="gpsCoordDisplay" class="text-[10px] text-slate-400 font-mono">Bus at terminal</span>
                     <a href="#" id="gmapsExternalBtn" target="_blank" class="text-[11px] text-indigo-600 font-semibold hover:underline flex items-center gap-1">Open in Google Maps ↗</a>
                 </div>
-            </div>
-
-            <!-- Toolbar Reset (Hidden until destination is reached) -->
-            <div id="resetContainer" class="flex justify-end hidden">
-                <button id="resetStatusBtn" class="text-xs text-slate-600 hover:text-indigo-600 font-semibold bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm transition-colors flex items-center gap-1.5">
-                    🔄 Reset Daily Status
-                </button>
             </div>
         </main>
     </div>
@@ -252,8 +249,7 @@
         const actionCardContainer = document.getElementById('actionCardContainer');
         const streamGpsToggleBtn = document.getElementById('streamGpsToggleBtn');
         const shareButton = document.getElementById('shareButton');
-        const resetContainer = document.getElementById('resetContainer');
-        const resetStatusBtn = document.getElementById('resetStatusBtn');
+        const globalResetBtn = document.getElementById('globalResetBtn');
         const toast = document.getElementById('toast');
 
         function getDistanceInMeters(lat1, lon1, lat2, lon2) {
@@ -465,12 +461,6 @@
                 streamGpsToggleBtn.className = `bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-4 rounded-xl shadow transition-colors flex-shrink-0 flex items-center gap-1`;
             }
 
-            if (routeData.destinationReached) {
-                resetContainer.classList.remove('hidden');
-            } else {
-                resetContainer.classList.add('hidden');
-            }
-
             updateMapVisuals();
         }
 
@@ -586,7 +576,6 @@
                     const { nearestIdx, minDistance } = findNearestStopIndex(lat, lng, stops);
 
                     if (newCurrentIndex < 0 || nearestIdx > newCurrentIndex) {
-                        // Reduced mid-route starting threshold from 300m to 100m
                         if (minDistance < 100 || newCurrentIndex < 0) {
                             newCurrentIndex = nearestIdx;
                             stops = stops.map((s, idx) => ({
@@ -603,7 +592,6 @@
                     let reachedDest = routeData.destinationReached;
                     let compTime = routeData.completedAt;
 
-                    // Reduced stop-arrival threshold from 50m to 25m
                     if (finalStopDistance < 25 || newCurrentIndex >= finalStopIndex) {
                         newCurrentIndex = finalStopIndex;
                         reachedDest = true;
@@ -648,8 +636,9 @@
             }
         }
 
-        resetStatusBtn.addEventListener('click', () => {
-            if (confirm("Are you sure you want to reset the bus route for today?")) {
+        // Global Reset Button action (always available in the top bar)
+        globalResetBtn.addEventListener('click', () => {
+            if (confirm("Are you sure you want to reset the bus route?")) {
                 const resetStops = routeData.stops.map(stop => ({ ...stop, passed: false }));
                 updateCloudRouteData({
                     stops: resetStops,
