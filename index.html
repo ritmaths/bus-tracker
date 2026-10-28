@@ -292,6 +292,14 @@
             return { nearestIdx, minDistance };
         }
 
+        // Check if saved timestamp belongs to a previous day
+        function isPreviousDay(timestamp) {
+            if (!timestamp) return false;
+            const savedDate = new Date(timestamp).toDateString();
+            const currentDate = new Date().toDateString();
+            return savedDate !== currentDate;
+        }
+
         function initLeafletMap() {
             const initialLat = predefinedStopsWithCoords[0].lat;
             const initialLng = predefinedStopsWithCoords[0].lng;
@@ -356,6 +364,31 @@
         onSnapshot(routeDocRef, { includeMetadataChanges: true }, (docSnap) => {
             if (docSnap.exists()) {
                 const cloudData = docSnap.data();
+
+                // AUTOMATIC NEXT-DAY RESET CHECK:
+                // If the last update was on a previous calendar day, auto-reset everything for today!
+                if (isPreviousDay(cloudData.lastUpdated)) {
+                    const freshStops = predefinedStopsWithCoords.map((item, idx) => ({
+                        id: idx + 1,
+                        name: item.name,
+                        lat: item.lat,
+                        lng: item.lng,
+                        passed: false
+                    }));
+                    const resetData = {
+                        routeName: 'RIT Bus Route Tracker',
+                        currentStopIndex: -1,
+                        lastUpdated: null,
+                        liveGpsCoords: null,
+                        detectedLandmarkName: null,
+                        isStreamingActive: false,
+                        destinationReached: false,
+                        stops: freshStops
+                    };
+                    saveDataToCloud(resetData);
+                    return;
+                }
+
                 routeData = {
                     ...cloudData,
                     stops: predefinedStopsWithCoords.map((item, idx) => {
@@ -549,9 +582,7 @@
                 return;
             }
 
-            // Keep screen / background worker alive using Wake Lock API
             requestWakeLock();
-
             showToast("Bus journey started. Background tracking active...");
 
             watchPositionId = navigator.geolocation.watchPosition(
@@ -687,7 +718,7 @@
         function escapeHtml(str) {
             if (!str) return '';
             return str.replace(/[&<>"']/g, function(m) {
-                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
+                return { '&': '&', '<': '<', '>': '>', '"': '"', "'": ''' }[m];
             });
         }
 
