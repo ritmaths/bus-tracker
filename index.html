@@ -139,10 +139,10 @@
                 <div class="bg-indigo-50 p-3 rounded-xl border border-indigo-100 flex items-center justify-between gap-3">
                     <div>
                         <div class="text-xs font-bold text-indigo-950 flex items-center gap-1">
-                            <span>📡 Automatic Driver Tracker</span>
+                            <span>📡 Background Driver Tracker</span>
                         </div>
                         <p class="text-[10px] text-indigo-700 mt-0.5 leading-tight">
-                            Automatically updates stops & stops at destination.
+                            Tracks location in background. You can switch apps freely.
                         </p>
                     </div>
                     <button id="streamGpsToggleBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-3 rounded-xl shadow transition-colors flex-shrink-0 flex items-center gap-1">
@@ -159,8 +159,8 @@
                 </div>
             </div>
 
-            <!-- Toolbar Reset -->
-            <div class="flex justify-end">
+            <!-- Toolbar Reset (Hidden until destination is reached) -->
+            <div id="resetContainer" class="flex justify-end hidden">
                 <button id="resetStatusBtn" class="text-xs text-slate-600 hover:text-indigo-600 font-semibold bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm transition-colors flex items-center gap-1.5">
                     🔄 Reset Daily Status
                 </button>
@@ -227,6 +227,7 @@
             liveGpsCoords: null,
             detectedLandmarkName: null,
             isStreamingActive: false,
+            destinationReached: false,
             stops: predefinedStopsWithCoords.map((item, idx) => ({
                 id: idx + 1,
                 name: item.name,
@@ -237,6 +238,7 @@
         };
 
         let watchPositionId = null;
+        let wakeLock = null;
 
         // Leaflet Map Handles
         let leafletMap = null;
@@ -259,6 +261,7 @@
         const speedBadge = document.getElementById('speedBadge');
         const streamGpsToggleBtn = document.getElementById('streamGpsToggleBtn');
         const shareButton = document.getElementById('shareButton');
+        const resetContainer = document.getElementById('resetContainer');
         const resetStatusBtn = document.getElementById('resetStatusBtn');
         const toast = document.getElementById('toast');
 
@@ -407,14 +410,14 @@
             // 2. Current Stop
             if (currentIndex >= 0 && currentIndex < stops.length) {
                 currentBusStopDisplay.innerHTML = `<span class="bg-indigo-600 text-white font-bold px-2 py-0.5 rounded text-[10px] uppercase">Current</span> <span class="truncate">${escapeHtml(stops[currentIndex].name)}</span>`;
-            } else if (currentIndex >= stops.length) {
+            } else if (currentIndex >= stops.length || routeData.destinationReached) {
                 currentBusStopDisplay.innerHTML = `<span class="bg-emerald-600 text-white font-bold px-2 py-0.5 rounded text-[10px] uppercase">Finished</span> <span class="truncate">Route Completed 🎉</span>`;
             } else {
                 currentBusStopDisplay.innerHTML = `<span class="text-slate-400 font-normal">Bus has not started yet</span>`;
             }
 
             // 3. Next Stop
-            if (currentIndex >= -1 && currentIndex < stops.length - 1) {
+            if (currentIndex >= -1 && currentIndex < stops.length - 1 && !routeData.destinationReached) {
                 const nextIdx = currentIndex === -1 ? 0 : currentIndex + 1;
                 nextStopDisplay.innerHTML = `<span class="bg-slate-200 text-slate-700 font-bold px-1.5 py-0.5 rounded text-[10px] uppercase">Next</span> <span class="truncate">${escapeHtml(stops[nextIdx].name)}</span>`;
                 nextStopDisplay.style.display = 'flex';
@@ -437,13 +440,20 @@
                 lastUpdatedDisplay.innerText = 'Updated: Not updated yet today';
             }
 
-            // Stream Button State ("Start Bus" / "Stop Tracking")
-            if (watchPositionId !== null || routeData.isStreamingActive) {
-                streamGpsToggleBtn.innerHTML = `<span>⏹️</span> Stop Tracking`;
-                streamGpsToggleBtn.className = `bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold py-2 px-3 rounded-xl shadow transition-colors flex-shrink-0 flex items-center gap-1 animate-pulse`;
+            // Once started, remove option to stop (hide the toggle/stop button completely)
+            if (routeData.isStreamingActive || watchPositionId !== null) {
+                streamGpsToggleBtn.parentElement.parentElement.style.display = 'none';
             } else {
+                streamGpsToggleBtn.parentElement.parentElement.style.display = 'flex';
                 streamGpsToggleBtn.innerHTML = `<span>🚌</span> Start Bus`;
                 streamGpsToggleBtn.className = `bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-3 rounded-xl shadow transition-colors flex-shrink-0 flex items-center gap-1`;
+            }
+
+            // Display reset option ONLY at the destination
+            if (routeData.destinationReached) {
+                resetContainer.classList.remove('hidden');
+            } else {
+                resetContainer.classList.add('hidden');
             }
 
             updateMapVisuals();
@@ -507,7 +517,7 @@
             leafletMap.panTo([currentLat, currentLng], { animate: true });
 
             if (isContinuous) {
-                mapAccuracyTag.innerText = "📡 Live Driver Tracking";
+                mapAccuracyTag.innerText = "📡 Background Live Tracking";
                 mapAccuracyTag.className = "text-[10px] text-emerald-700 bg-emerald-100 font-bold px-2 py-0.5 rounded-full";
             } else {
                 mapAccuracyTag.innerText = "Stop Sequence Map";
@@ -518,12 +528,20 @@
         }
 
         streamGpsToggleBtn.addEventListener('click', () => {
-            if (watchPositionId !== null) {
-                stopGpsStream();
-            } else {
+            if (watchPositionId === null && !routeData.isStreamingActive) {
                 startGpsStream();
             }
         });
+
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                }
+            } catch (err) {
+                console.warn('Wake Lock error:', err);
+            }
+        }
 
         function startGpsStream() {
             if (!("geolocation" in navigator)) {
@@ -531,7 +549,10 @@
                 return;
             }
 
-            showToast("Bus journey started. Tracking location...");
+            // Keep screen / background worker alive using Wake Lock API
+            requestWakeLock();
+
+            showToast("Bus journey started. Background tracking active...");
 
             watchPositionId = navigator.geolocation.watchPosition(
                 async (pos) => {
@@ -549,11 +570,9 @@
                     let stops = [...routeData.stops];
                     let newCurrentIndex = routeData.currentStopIndex;
 
-                    // If starting mid-route or not initialized, find the closest stop dynamically across all stops
                     const { nearestIdx, minDistance } = findNearestStopIndex(lat, lng, stops);
 
                     if (newCurrentIndex < 0 || nearestIdx > newCurrentIndex) {
-                        // If within 300 meters of a stop or starting fresh, update current index automatically
                         if (minDistance < 300 || newCurrentIndex < 0) {
                             newCurrentIndex = nearestIdx;
                             stops = stops.map((s, idx) => ({
@@ -565,34 +584,35 @@
 
                     const detectedName = await reverseGeocodeLandmark(lat, lng);
 
+                    const finalStopIndex = stops.length - 1;
+                    const finalStopDistance = getDistanceInMeters(lat, lng, stops[finalStopIndex].lat, stops[finalStopIndex].lng);
+                    let reachedDest = routeData.destinationReached;
+
+                    if (finalStopDistance < 50 || newCurrentIndex >= finalStopIndex) {
+                        newCurrentIndex = finalStopIndex;
+                        reachedDest = true;
+                        stopGpsStream();
+                        showToast("Destination MSRIT reached! Reset option enabled.");
+                    }
+
                     updateCloudRouteData({
                         liveGpsCoords: coords,
                         stops: stops,
                         currentStopIndex: newCurrentIndex,
                         detectedLandmarkName: detectedName || routeData.detectedLandmarkName,
-                        isStreamingActive: true,
+                        isStreamingActive: !reachedDest,
+                        destinationReached: reachedDest,
                         lastUpdated: Date.now()
                     });
-
-                    // AUTO-STOP: Stop tracking automatically if final destination (MSRIT) is reached within 50m
-                    const finalStopIndex = stops.length - 1;
-                    if (newCurrentIndex >= finalStopIndex) {
-                        const finalStopDistance = getDistanceInMeters(lat, lng, stops[finalStopIndex].lat, stops[finalStopIndex].lng);
-                        if (finalStopDistance < 50) {
-                            stopGpsStream();
-                            showToast("Destination MSRIT reached! Location tracking stopped automatically.");
-                        }
-                    }
                 },
                 (err) => {
                     console.warn("GPS Watch error:", err);
                     showToast("GPS Error: " + err.message);
-                    stopGpsStream();
                 },
                 {
                     enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 0
+                    maximumAge: 0,
+                    timeout: Infinity
                 }
             );
 
@@ -604,11 +624,10 @@
                 navigator.geolocation.clearWatch(watchPositionId);
                 watchPositionId = null;
             }
-            updateCloudRouteData({
-                isStreamingActive: false
-            });
-            showToast("Tracking stopped");
-            renderApp();
+            if (wakeLock !== null) {
+                wakeLock.release().catch(() => {});
+                wakeLock = null;
+            }
         }
 
         resetStatusBtn.addEventListener('click', () => {
@@ -619,6 +638,8 @@
                     currentStopIndex: -1,
                     liveGpsCoords: null,
                     detectedLandmarkName: null,
+                    isStreamingActive: false,
+                    destinationReached: false,
                     lastUpdated: null
                 });
                 showToast("Route status reset!");
