@@ -81,7 +81,8 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
-                    <button id="globalResetBtn" class="bg-indigo-700 hover:bg-indigo-800 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow transition-colors flex items-center gap-1" title="Reset Route">
+                    <!-- Reset Button: Hidden during active trip -->
+                    <button id="globalResetBtn" class="hidden bg-indigo-700 hover:bg-indigo-800 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow transition-colors flex items-center gap-1" title="Reset Route">
                         🔄 Reset
                     </button>
                     <button id="shareButton" class="w-9 h-9 bg-indigo-700 hover:bg-indigo-800 active:bg-indigo-900 rounded-full flex items-center justify-center text-white transition-colors shadow-sm" title="Share Route Link">
@@ -457,12 +458,17 @@
                 lastUpdatedDisplay.innerText = 'Updated: Not updated yet today';
             }
 
+            // Hide start controls and RESET button during an active trip
             if (routeData.isStreamingActive || watchPositionId !== null) {
                 actionCardContainer.style.display = 'none';
+                globalResetBtn.classList.add('hidden'); // LOCKED OUT: Reset is hidden during active trip
             } else {
                 actionCardContainer.style.display = 'flex';
                 streamGpsToggleBtn.innerHTML = `<span>▶️</span> Start Bus`;
                 streamGpsToggleBtn.className = `bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-4 rounded-xl shadow transition-colors flex-shrink-0 flex items-center gap-1`;
+                
+                // Show reset button only before starting or after completion
+                globalResetBtn.classList.remove('hidden');
             }
 
             updateMapVisuals();
@@ -552,7 +558,6 @@
             }
         }
 
-        // Safety restriction check: Ensures driver is within 100 meters of JP Nagar Metro Station before starting
         function verifyLocationAndStart() {
             if (!("geolocation" in navigator)) {
                 showToast("Geolocation is not supported by your browser");
@@ -565,7 +570,7 @@
                 (pos) => {
                     const currentLat = pos.coords.latitude;
                     const currentLng = pos.coords.longitude;
-                    const startTerminal = predefinedStopsWithCoords[0]; // JP Nagar Metro Station
+                    const startTerminal = predefinedStopsWithCoords[0];
 
                     const distanceToStart = getDistanceInMeters(
                         currentLat,
@@ -574,7 +579,6 @@
                         startTerminal.lng
                     );
 
-                    // 100 meters starting radius restriction
                     if (distanceToStart <= 100) {
                         startGpsStream();
                     } else {
