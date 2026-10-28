@@ -19,7 +19,8 @@
     
     <style>
         body { font-family: 'Inter', sans-serif; }
-        #map { height: 260px; width: 100%; border-radius: 0.75rem; z-index: 10; }
+        /* Explicit height and block display to ensure Leaflet renders correctly */
+        #map { height: 260px !important; width: 100% !important; min-height: 260px; border-radius: 0.75rem; z-index: 10; display: block; }
         
         .bus-pulse-icon {
             display: flex;
@@ -81,7 +82,6 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
-                    <!-- Reset Button: Hidden during active trip -->
                     <button id="globalResetBtn" class="hidden bg-indigo-700 hover:bg-indigo-800 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow transition-colors flex items-center gap-1" title="Reset Route">
                         🔄 Reset
                     </button>
@@ -286,6 +286,8 @@
         }
 
         function initLeafletMap() {
+            if (leafletMap) return; // Prevent double initialization
+
             const initialLat = predefinedStopsWithCoords[0].lat;
             const initialLng = predefinedStopsWithCoords[0].lng;
 
@@ -316,6 +318,11 @@
             });
 
             busMarker = L.marker([initialLat, initialLng], { icon: busIcon }).addTo(leafletMap);
+
+            // Force Leaflet to calculate correct dimensions once rendered
+            setTimeout(() => {
+                leafletMap.invalidateSize();
+            }, 200);
         }
 
         async function reverseGeocodeLandmark(lat, lng) {
@@ -344,8 +351,11 @@
             }
         }
 
-        renderApp();
-        initLeafletMap();
+        // Initialize map and UI immediately on load
+        window.addEventListener('DOMContentLoaded', () => {
+            initLeafletMap();
+            renderApp();
+        });
 
         onSnapshot(routeDocRef, { includeMetadataChanges: true }, (docSnap) => {
             if (docSnap.exists()) {
@@ -399,7 +409,6 @@
             console.error("Firestore sync error:", error);
             liveStatusText.innerText = "Cloud Blocked / Offline";
             syncStatusDot.className = "w-2.5 h-2.5 rounded-full bg-rose-500";
-            showToast("Cloud connection blocked or offline.");
             renderApp();
         });
 
@@ -458,16 +467,13 @@
                 lastUpdatedDisplay.innerText = 'Updated: Not updated yet today';
             }
 
-            // Hide start controls and RESET button during an active trip
             if (routeData.isStreamingActive || watchPositionId !== null) {
                 actionCardContainer.style.display = 'none';
-                globalResetBtn.classList.add('hidden'); // LOCKED OUT: Reset is hidden during active trip
+                globalResetBtn.classList.add('hidden');
             } else {
                 actionCardContainer.style.display = 'flex';
                 streamGpsToggleBtn.innerHTML = `<span>▶️</span> Start Bus`;
                 streamGpsToggleBtn.className = `bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-4 rounded-xl shadow transition-colors flex-shrink-0 flex items-center gap-1`;
-                
-                // Show reset button only before starting or after completion
                 globalResetBtn.classList.remove('hidden');
             }
 
@@ -476,6 +482,9 @@
 
         function updateMapVisuals() {
             if (!leafletMap) return;
+
+            // Invalidate size in case container dimensions changed
+            leafletMap.invalidateSize();
 
             stopMarkersGroup.clearLayers();
 
@@ -743,7 +752,7 @@
         function escapeHtml(str) {
             if (!str) return '';
             return str.replace(/[&<>"']/g, function(m) {
-                return { '&': '&', '<': '<', '>': '>', '"': '"', "'": ''' }[m];
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
             });
         }
     </script>
