@@ -5,31 +5,65 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Live Bus Stop Tracker - RIT</title>
     
+    <!-- PWA App Icon & Manifest Meta Tags -->
     <link rel="icon" type="image/png" href="RITLogo.png">
     <link rel="apple-touch-icon" href="RITLogo.png">
     
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Leaflet OpenSource Maps CSS & JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     
     <style>
         body { font-family: 'Inter', sans-serif; }
         #map { height: 260px; width: 100%; border-radius: 0.75rem; z-index: 10; }
-        .bus-pulse-icon { display: flex; align-items: center; justify-content: center; }
+        
+        /* Custom map pulse marker animation */
+        .bus-pulse-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
         .bus-pulse-ring {
-            width: 38px; height: 38px; background: #4f46e5; border: 3px solid #ffffff; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center; color: white; font-size: 18px;
-            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.4); animation: busPulse 2s infinite;
+            width: 38px;
+            height: 38px;
+            background: #4f46e5;
+            border: 3px solid #ffffff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.4);
+            animation: busPulse 2s infinite;
         }
         @keyframes busPulse {
             0% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.6); }
             70% { box-shadow: 0 0 0 12px rgba(79, 70, 229, 0); }
             100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
         }
-        .stop-marker-icon { background: #ffffff; border: 2.5px solid #64748b; border-radius: 50%; width: 14px; height: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.15); }
-        .stop-marker-passed { background: #10b981; border-color: #059669; }
-        .stop-marker-current { background: #6366f1; border-color: #4338ca; transform: scale(1.3); }
+
+        .stop-marker-icon {
+            background: #ffffff;
+            border: 2.5px solid #64748b;
+            border-radius: 50%;
+            width: 14px;
+            height: 14px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+        }
+        .stop-marker-passed {
+            background: #10b981;
+            border-color: #059669;
+        }
+        .stop-marker-current {
+            background: #6366f1;
+            border-color: #4338ca;
+            transform: scale(1.3);
+        }
     </style>
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col justify-between pb-8 select-none">
@@ -43,7 +77,7 @@
                         <h1 id="routeTitleHeader" class="text-base font-bold leading-snug">RIT Bus Route Tracker</h1>
                         <p class="text-xs text-indigo-200 flex items-center gap-1.5 mt-0.5">
                             <span id="syncStatusDot" class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                            <span id="liveStatusText">Ready</span>
+                            <span id="liveStatusText">Connecting to Cloud...</span>
                         </p>
                     </div>
                 </div>
@@ -54,12 +88,15 @@
         </header>
 
         <main class="max-w-md mx-auto p-4 space-y-4">
+
+            <!-- Summary Status Card -->
             <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
                 <div class="flex justify-between items-center">
                     <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Live Route Status</span>
                     <span id="speedBadge" class="hidden text-[10px] font-bold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">Moving 0 km/h</span>
                 </div>
                 
+                <!-- Trio View for Bus Stops -->
                 <div class="space-y-2">
                     <div id="prevStopDisplay" class="text-xs font-semibold text-slate-500 bg-slate-50 p-2.5 rounded-lg border border-dashed border-slate-300 flex items-center gap-2">
                         <span class="bg-slate-200 text-slate-700 font-bold px-1.5 py-0.5 rounded text-[10px] uppercase">Previous</span>
@@ -68,15 +105,16 @@
 
                     <div id="currentBusStopDisplay" class="text-base font-bold text-indigo-950 bg-indigo-50 border-2 border-indigo-500 p-3 rounded-xl flex items-center gap-2 shadow-sm">
                         <span class="bg-indigo-600 text-white font-bold px-2 py-0.5 rounded text-[10px] uppercase">Current</span>
-                        <span class="truncate">Bus has not started yet</span>
+                        <span class="truncate">Loading...</span>
                     </div>
 
                     <div id="nextStopDisplay" class="text-xs font-semibold text-slate-500 bg-slate-50 p-2.5 rounded-lg border border-dashed border-slate-300 flex items-center gap-2">
                         <span class="bg-slate-200 text-slate-700 font-bold px-1.5 py-0.5 rounded text-[10px] uppercase">Next</span>
-                        <span class="truncate">JP Nagar Metro Station</span>
+                        <span class="truncate">Loading...</span>
                     </div>
                 </div>
 
+                <!-- Detected Landmark Badge from Geocoding -->
                 <div id="detectedLandmarkBox" class="bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 text-xs text-emerald-900 font-medium flex items-center gap-2">
                     <span>📍</span>
                     <span id="detectedLandmarkText" class="truncate font-semibold">Terminal: JP Nagar Metro Station</span>
@@ -87,6 +125,7 @@
                 </div>
             </div>
 
+            <!-- Interactive Map & Live Stream Card -->
             <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
                 <div class="flex items-center justify-between border-b border-slate-100 pb-2">
                     <div class="flex items-center gap-1.5">
@@ -95,20 +134,17 @@
                     <span id="mapAccuracyTag" class="text-[10px] text-slate-500 bg-slate-100 font-medium px-2 py-0.5 rounded-full">Stop sequence</span>
                 </div>
 
+                <!-- Continuous GPS Streaming Switch Bar -->
                 <div id="actionCardContainer" class="bg-indigo-50 p-3 rounded-xl border border-indigo-100 flex items-center justify-between gap-3">
-                    <div>
-                        <div class="text-xs font-bold text-indigo-950 flex items-center gap-1">
-                            <span>📡 Background Driver Tracker</span>
-                        </div>
-                        <p class="text-[10px] text-indigo-700 mt-0.5 leading-tight">
-                            Tracks location in background. You can switch apps freely.
-                        </p>
+                    <div class="text-xs font-bold text-indigo-950">
+                        <span>🚌 Ready to start trip</span>
                     </div>
-                    <button id="streamGpsToggleBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-3 rounded-xl shadow transition-colors flex-shrink-0 flex items-center gap-1">
-                        <span>🚌</span> Start Bus
+                    <button id="streamGpsToggleBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-4 rounded-xl shadow transition-colors flex-shrink-0 flex items-center gap-1">
+                        <span>▶️</span> Start Bus
                     </button>
                 </div>
 
+                <!-- Leaflet Interactive Map -->
                 <div id="map"></div>
 
                 <div class="flex justify-between items-center text-xs pt-0.5">
@@ -117,6 +153,7 @@
                 </div>
             </div>
 
+            <!-- Toolbar Reset (Hidden until destination is reached) -->
             <div id="resetContainer" class="flex justify-end hidden">
                 <button id="resetStatusBtn" class="text-xs text-slate-600 hover:text-indigo-600 font-semibold bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm transition-colors flex items-center gap-1.5">
                     🔄 Reset Daily Status
@@ -178,6 +215,7 @@
             routeName: 'RIT Bus Route Tracker',
             currentStopIndex: -1,
             lastUpdated: null,
+            completedAt: null,
             liveGpsCoords: null,
             detectedLandmarkName: null,
             isStreamingActive: false,
@@ -309,6 +347,9 @@
             }
         }
 
+        renderApp();
+        initLeafletMap();
+
         onSnapshot(routeDocRef, { includeMetadataChanges: true }, (docSnap) => {
             if (docSnap.exists()) {
                 const cloudData = docSnap.data();
@@ -325,6 +366,7 @@
                         routeName: 'RIT Bus Route Tracker',
                         currentStopIndex: -1,
                         lastUpdated: null,
+                        completedAt: null,
                         liveGpsCoords: null,
                         detectedLandmarkName: null,
                         isStreamingActive: false,
@@ -348,17 +390,17 @@
                         };
                     })
                 };
-                liveStatusText.innerText = docSnap.metadata.hasPendingWrites ? "Syncing..." : "Connected ✓";
+                liveStatusText.innerText = "Cloud Live Sync ✓";
                 syncStatusDot.className = "w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse";
             } else {
                 saveDataToCloud(routeData);
-                liveStatusText.innerText = "Initialized Firestore";
+                liveStatusText.innerText = "Cloud Initialized ✓";
             }
             renderApp();
         }, (error) => {
             console.error("Firestore sync error:", error);
             liveStatusText.innerText = "Offline Mode";
-            syncStatusDot.className = "w-2.5 h-2.5 rounded-full bg-rose-500";
+            syncStatusDot.className = "w-2.5 h-2.5 rounded-full bg-amber-500";
             renderApp();
         });
 
@@ -387,9 +429,10 @@
             if (currentIndex >= 0 && currentIndex < stops.length) {
                 currentBusStopDisplay.innerHTML = `<span class="bg-indigo-600 text-white font-bold px-2 py-0.5 rounded text-[10px] uppercase">Current</span> <span class="truncate">${escapeHtml(stops[currentIndex].name)}</span>`;
             } else if (currentIndex >= stops.length || routeData.destinationReached) {
-                currentBusStopDisplay.innerHTML = `<span class="bg-emerald-600 text-white font-bold px-2 py-0.5 rounded text-[10px] uppercase">Finished</span> <span class="truncate">Route Completed 🎉</span>`;
+                const compText = routeData.completedAt ? formatFullTimestamp(routeData.completedAt) : 'earlier today';
+                currentBusStopDisplay.innerHTML = `<span class="bg-emerald-600 text-white font-bold px-2 py-0.5 rounded text-[10px] uppercase">Completed</span> <span class="truncate text-xs font-semibold">Completed trip on ${compText}</span>`;
             } else {
-                currentBusStopDisplay.innerHTML = `<span class="bg-indigo-600 text-white font-bold px-2 py-0.5 rounded text-[10px] uppercase">Current</span> <span class="truncate">Bus has not started yet</span>`;
+                currentBusStopDisplay.innerHTML = `<span class="bg-indigo-600 text-white font-bold px-2 py-0.5 rounded text-[10px] uppercase">Current</span> <span class="truncate text-slate-400 font-normal">Bus has not started yet</span>`;
             }
 
             if (currentIndex >= -1 && currentIndex < stops.length - 1 && !routeData.destinationReached) {
@@ -418,8 +461,8 @@
                 actionCardContainer.style.display = 'none';
             } else {
                 actionCardContainer.style.display = 'flex';
-                streamGpsToggleBtn.innerHTML = `<span>🚌</span> Start Bus`;
-                streamGpsToggleBtn.className = `bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-3 rounded-xl shadow transition-colors flex-shrink-0 flex items-center gap-1`;
+                streamGpsToggleBtn.innerHTML = `<span>▶️</span> Start Bus`;
+                streamGpsToggleBtn.className = `bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-4 rounded-xl shadow transition-colors flex-shrink-0 flex items-center gap-1`;
             }
 
             if (routeData.destinationReached) {
@@ -489,7 +532,7 @@
             leafletMap.panTo([currentLat, currentLng], { animate: true });
 
             if (isContinuous) {
-                mapAccuracyTag.innerText = "📡 Background Live Tracking";
+                mapAccuracyTag.innerText = "📡 Live Tracking";
                 mapAccuracyTag.className = "text-[10px] text-emerald-700 bg-emerald-100 font-bold px-2 py-0.5 rounded-full";
             } else {
                 mapAccuracyTag.innerText = "Stop Sequence Map";
@@ -522,7 +565,7 @@
             }
 
             requestWakeLock();
-            showToast("Bus journey started. Background tracking active...");
+            showToast("Bus journey started...");
 
             watchPositionId = navigator.geolocation.watchPosition(
                 async (pos) => {
@@ -543,7 +586,8 @@
                     const { nearestIdx, minDistance } = findNearestStopIndex(lat, lng, stops);
 
                     if (newCurrentIndex < 0 || nearestIdx > newCurrentIndex) {
-                        if (minDistance < 300 || newCurrentIndex < 0) {
+                        // Reduced mid-route starting threshold from 300m to 100m
+                        if (minDistance < 100 || newCurrentIndex < 0) {
                             newCurrentIndex = nearestIdx;
                             stops = stops.map((s, idx) => ({
                                 ...s,
@@ -557,12 +601,15 @@
                     const finalStopIndex = stops.length - 1;
                     const finalStopDistance = getDistanceInMeters(lat, lng, stops[finalStopIndex].lat, stops[finalStopIndex].lng);
                     let reachedDest = routeData.destinationReached;
+                    let compTime = routeData.completedAt;
 
-                    if (finalStopDistance < 50 || newCurrentIndex >= finalStopIndex) {
+                    // Reduced stop-arrival threshold from 50m to 25m
+                    if (finalStopDistance < 25 || newCurrentIndex >= finalStopIndex) {
                         newCurrentIndex = finalStopIndex;
                         reachedDest = true;
+                        compTime = Date.now();
                         stopGpsStream();
-                        showToast("Destination MSRIT reached! Reset option enabled.");
+                        showToast("Destination MSRIT reached!");
                     }
 
                     updateCloudRouteData({
@@ -572,6 +619,7 @@
                         detectedLandmarkName: detectedName || routeData.detectedLandmarkName,
                         isStreamingActive: !reachedDest,
                         destinationReached: reachedDest,
+                        completedAt: compTime,
                         lastUpdated: Date.now()
                     });
                 },
@@ -606,6 +654,7 @@
                 updateCloudRouteData({
                     stops: resetStops,
                     currentStopIndex: -1,
+                    completedAt: null,
                     liveGpsCoords: null,
                     detectedLandmarkName: null,
                     isStreamingActive: false,
@@ -654,18 +703,20 @@
             });
         }
 
+        function formatFullTimestamp(ts) {
+            if (!ts) return '';
+            const date = new Date(ts);
+            const dateStr = date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+            const timeStr = date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+            return `${dateStr} at ${timeStr}`;
+        }
+
         function escapeHtml(str) {
             if (!str) return '';
             return str.replace(/[&<>"']/g, function(m) {
                 return { '&': '&', '<': '<', '>': '>', '"': '"', "'": ''' }[m];
             });
         }
-
-        window.addEventListener('load', () => {
-            initLeafletMap();
-            renderApp();
-        });
     </script>
 </body>
 </html>
-</code>
