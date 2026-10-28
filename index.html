@@ -146,7 +146,7 @@
                         </p>
                     </div>
                     <button id="streamGpsToggleBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-3 rounded-xl shadow transition-colors flex-shrink-0 flex items-center gap-1">
-                        <span>🚌</span> Start Trip
+                        <span>🚌</span> Start Bus
                     </button>
                 </div>
 
@@ -273,6 +273,20 @@
                 Math.sin(dLon / 2) * Math.sin(dLon / 2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
             return R * c;
+        }
+
+        // Helper to find closest stop index dynamically from coordinates
+        function findNearestStopIndex(lat, lng, stops) {
+            let minDistance = Infinity;
+            let nearestIdx = 0;
+            for (let i = 0; i < stops.length; i++) {
+                const dist = getDistanceInMeters(lat, lng, stops[i].lat, stops[i].lng);
+                if (dist < minDistance) {
+                    minDistance = dist;
+                    nearestIdx = i;
+                }
+            }
+            return { nearestIdx, minDistance };
         }
 
         function initLeafletMap() {
@@ -423,7 +437,7 @@
                 lastUpdatedDisplay.innerText = 'Updated: Not updated yet today';
             }
 
-            // Stream Button State ("Bus Started" / "Stop Tracking")
+            // Stream Button State ("Start Bus" / "Stop Tracking")
             if (watchPositionId !== null || routeData.isStreamingActive) {
                 streamGpsToggleBtn.innerHTML = `<span>⏹️</span> Stop Tracking`;
                 streamGpsToggleBtn.className = `bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold py-2 px-3 rounded-xl shadow transition-colors flex-shrink-0 flex items-center gap-1 animate-pulse`;
@@ -532,21 +546,20 @@
                         timestamp: Date.now()
                     };
 
-                    // Automatic stop detection based on proximity (within 40 meters)
-                    let newCurrentIndex = routeData.currentStopIndex;
                     let stops = [...routeData.stops];
-                    
-                    if (newCurrentIndex < 0) newCurrentIndex = 0;
+                    let newCurrentIndex = routeData.currentStopIndex;
 
-                    for (let i = 0; i < stops.length; i++) {
-                        const distance = getDistanceInMeters(lat, lng, stops[i].lat, stops[i].lng);
-                        if (distance < 40 && i >= newCurrentIndex) {
-                            newCurrentIndex = i;
+                    // If starting mid-route or not initialized, find the closest stop dynamically across all stops
+                    const { nearestIdx, minDistance } = findNearestStopIndex(lat, lng, stops);
+
+                    if (newCurrentIndex < 0 || nearestIdx > newCurrentIndex) {
+                        // If within 300 meters of a stop or starting fresh, update current index automatically
+                        if (minDistance < 300 || newCurrentIndex < 0) {
+                            newCurrentIndex = nearestIdx;
                             stops = stops.map((s, idx) => ({
                                 ...s,
                                 passed: idx <= newCurrentIndex
                             }));
-                            break;
                         }
                     }
 
@@ -561,11 +574,11 @@
                         lastUpdated: Date.now()
                     });
 
-                    // AUTO-STOP: Stop tracking automatically if final destination (MSRIT) is reached within 40m
+                    // AUTO-STOP: Stop tracking automatically if final destination (MSRIT) is reached within 50m
                     const finalStopIndex = stops.length - 1;
                     if (newCurrentIndex >= finalStopIndex) {
                         const finalStopDistance = getDistanceInMeters(lat, lng, stops[finalStopIndex].lat, stops[finalStopIndex].lng);
-                        if (finalStopDistance < 40) {
+                        if (finalStopDistance < 50) {
                             stopGpsStream();
                             showToast("Destination MSRIT reached! Location tracking stopped automatically.");
                         }
