@@ -75,7 +75,7 @@
                     <div>
                         <h1 id="routeTitleHeader" class="text-base font-bold leading-snug">RIT Bus Route Tracker</h1>
                         <p class="text-xs text-indigo-200 flex items-center gap-1.5 mt-0.5">
-                            <span id="syncStatusDot" class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span id="syncStatusDot" class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
                             <span id="liveStatusText">Connecting to Cloud...</span>
                         </p>
                     </div>
@@ -346,6 +346,7 @@
         renderApp();
         initLeafletMap();
 
+        // Connect to Firebase with error catcher
         onSnapshot(routeDocRef, { includeMetadataChanges: true }, (docSnap) => {
             if (docSnap.exists()) {
                 const cloudData = docSnap.data();
@@ -391,12 +392,14 @@
             } else {
                 saveDataToCloud(routeData);
                 liveStatusText.innerText = "Cloud Initialized ✓";
+                syncStatusDot.className = "w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse";
             }
             renderApp();
         }, (error) => {
             console.error("Firestore sync error:", error);
-            liveStatusText.innerText = "Offline Mode";
-            syncStatusDot.className = "w-2.5 h-2.5 rounded-full bg-amber-500";
+            liveStatusText.innerText = "Cloud Blocked / Offline";
+            syncStatusDot.className = "w-2.5 h-2.5 rounded-full bg-rose-500";
+            showToast("Cloud connection blocked or offline.");
             renderApp();
         });
 
@@ -405,6 +408,8 @@
                 await setDoc(routeDocRef, newData);
             } catch (e) {
                 console.error("Failed to sync cloud:", e);
+                liveStatusText.innerText = "Cloud Write Failed";
+                syncStatusDot.className = "w-2.5 h-2.5 rounded-full bg-rose-500";
             }
         }
 
@@ -636,7 +641,6 @@
             }
         }
 
-        // Global Reset Button action (always available in the top bar)
         globalResetBtn.addEventListener('click', () => {
             if (confirm("Are you sure you want to reset the bus route?")) {
                 const resetStops = routeData.stops.map(stop => ({ ...stop, passed: false }));
