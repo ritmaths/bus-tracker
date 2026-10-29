@@ -564,7 +564,7 @@
         }
 
         // Updated: Check if driver is within 100m of ANY predefined stop on the route
-        function verifyLocationAndStart() {
+       function verifyLocationAndStart() {
             if (!("geolocation" in navigator)) {
                 showToast("Geolocation is not supported by your browser");
                 return;
@@ -588,7 +588,11 @@
                 },
                 (err) => {
                     console.warn("Location check error:", err);
-                    showToast("GPS Error: " + err.message);
+                    if (err.code === 1) {
+                        showToast("⚠️ Location permission blocked. Please enable location access in your browser settings.");
+                    } else {
+                        showToast("GPS Error: " + err.message);
+                    }
                 },
                 { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
             );
